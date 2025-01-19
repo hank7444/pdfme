@@ -94,8 +94,11 @@ function DesignerApp() {
     }
   };
 
-  const onSaveTemplate = (template?: Template | undefined) => {
+  const onSaveTemplate = (template?: Template) => {
+
     if (designer.current) {
+      console.log('onSaveTemplate getTemplate()',  designer.current.getTemplate())
+
       localStorage.setItem(
         "template",
         JSON.stringify(template || designer.current.getTemplate())

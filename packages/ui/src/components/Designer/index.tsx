@@ -5,6 +5,8 @@ import {
   Template,
   Schema,
   SchemaForUI,
+  VariableMapArray,
+  VariableMapObj,
   ChangeSchemas,
   DesignerProps,
   Size,
@@ -14,6 +16,7 @@ import {
 import { DndContext } from '@dnd-kit/core';
 import RightSidebar from './RightSidebar/index';
 import LeftSidebar from './LeftSidebar';
+import TestList from './TestList';
 import Canvas from './Canvas/index';
 import { RULER_HEIGHT, RIGHT_SIDEBAR_WIDTH, LEFT_SIDEBAR_WIDTH } from '../../constants';
 import { I18nContext, OptionsContext, PluginsRegistry } from '../../contexts';
@@ -67,6 +70,7 @@ const TemplateEditor = ({
   const [hoveringSchemaId, setHoveringSchemaId] = useState<string | null>(null);
   const [activeElements, setActiveElements] = useState<HTMLElement[]>([]);
   const [schemasList, setSchemasList] = useState<SchemaForUI[][]>([[]] as SchemaForUI[][]);
+  const [variableMap, setVariableMap] = useState<VariableMapArray>([]); 
   const [pageCursor, setPageCursor] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -98,23 +102,33 @@ const TemplateEditor = ({
   });
 
   const commitSchemas = useCallback(
-    (newSchemas: SchemaForUI[]) => {
+    (newSchemas: SchemaForUI[], pVariableMap?: any[]) => {
       future.current = [];
       past.current.push(cloneDeep(schemasList[pageCursor]));
       const _schemasList = cloneDeep(schemasList);
       _schemasList[pageCursor] = newSchemas;
+
+      const newPageSchemasNames = newSchemas.map(v => v.name);
+
+      const _variableMap = pVariableMap || cloneDeep(variableMap).filter(v => newPageSchemasNames.includes(v.mapToField));
+
       setSchemasList(_schemasList);
-      onChangeTemplate(schemasList2template(_schemasList, template.basePdf));
+      setVariableMap(_variableMap);
+      onChangeTemplate(schemasList2template(_schemasList, _variableMap, template.basePdf));
     },
-    [template, schemasList, pageCursor, onChangeTemplate]
+    [template, schemasList, variableMap, pageCursor, onChangeTemplate]
   );
 
   const removeSchemas = useCallback(
     (ids: string[]) => {
-      commitSchemas(schemasList[pageCursor].filter((schema) => !ids.includes(schema.id)));
+      const newSchemas = schemasList[pageCursor].filter((schema) => !ids.includes(schema.id))
+      const newPageSchemasNames = newSchemas.map(v => v.name);
+      const newVariableMap = variableMap.filter(v => newPageSchemasNames.includes(v.mapToField));
+
+      commitSchemas(newSchemas, newVariableMap);
       onEditEnd();
     },
-    [schemasList, pageCursor, commitSchemas]
+    [schemasList, variableMap, pageCursor, commitSchemas]
   );
 
   const changeSchemas: ChangeSchemas = useCallback(
@@ -122,13 +136,14 @@ const TemplateEditor = ({
       _changeSchemas({
         objs,
         schemas: schemasList[pageCursor],
+        variableMap,
         basePdf: template.basePdf,
         pluginsRegistry,
         pageSize: pageSizes[pageCursor],
         commitSchemas,
       });
     },
-    [commitSchemas, pageCursor, schemasList, pluginsRegistry, pageSizes, template.basePdf]
+    [commitSchemas, pageCursor, schemasList, variableMap, pluginsRegistry, pageSizes, template.basePdf]
   );
 
   useInitEvents({
@@ -137,6 +152,7 @@ const TemplateEditor = ({
     activeElements,
     template,
     schemasList,
+    variableMap,
     changeSchemas,
     commitSchemas,
     removeSchemas,
@@ -149,8 +165,10 @@ const TemplateEditor = ({
   });
 
   const updateTemplate = useCallback(async (newTemplate: Template) => {
-    const sl = await template2SchemasList(newTemplate);
+    const [sl, variableMap] = await template2SchemasList(newTemplate);
+
     setSchemasList(sl);
+    setVariableMap(variableMap);
     onEditEnd();
     setPageCursor(0);
     if (canvasRef.current?.scroll) {
@@ -194,6 +212,11 @@ const TemplateEditor = ({
     setTimeout(() => onEdit([document.getElementById(s.id)!]));
   };
 
+  const addVariableMap = (newVariableMap: any[]) => {
+    commitSchemas(schemasList[pageCursor], newVariableMap);
+    setTimeout(() => onEditEnd());
+  }
+
   const onSortEnd = (sortedSchemas: SchemaForUI[]) => {
     commitSchemas(sortedSchemas);
   };
@@ -204,7 +227,7 @@ const TemplateEditor = ({
 
   const updatePage = async (sl: SchemaForUI[][], newPageCursor: number) => {
     setPageCursor(newPageCursor);
-    const newTemplate = schemasList2template(sl, template.basePdf);
+    const newTemplate = schemasList2template(sl, variableMap, template.basePdf);
     onChangeTemplate(newTemplate);
     await updateTemplate(newTemplate);
     void refresh(newTemplate);
@@ -248,13 +271,34 @@ const TemplateEditor = ({
     ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
     : {};
 
+
   return (
     <Root size={size} scale={scale}>
       <DndContext
         onDragEnd={(event) => {
+          
           // Triggered after a schema is dragged & dropped from the left sidebar.
           if (!event.active) return;
           const active = event.active;
+          const over = event.over;
+
+          if (active.data.current && active.data.current.itemType === 'listItem') {
+            const { path, type } = active.data?.current;
+            let mapToField = ''
+
+            if (over && over.data && over.data.current) {
+              mapToField = over.data.current.name;
+            } 
+
+            const newVariableMap = variableMap
+              .filter((item: VariableMapObj) => item.mapToField !== mapToField && item.path !== path);
+        
+            newVariableMap.push({ type, mapToField, path });
+
+            addVariableMap(newVariableMap);
+            return;
+          }
+  
           const pageRect = paperRefs.current[pageCursor].getBoundingClientRect();
 
           const dragStartLeft = active.rect.current.initial?.left || 0;
@@ -277,6 +321,8 @@ const TemplateEditor = ({
           scale={scale}
           basePdf={template.basePdf}
         />
+
+        <TestList />
 
         <div style={{ position: 'absolute', width: canvasWidth, marginLeft: LEFT_SIDEBAR_WIDTH }}>
           <CtlBar
@@ -302,6 +348,7 @@ const TemplateEditor = ({
             pageSize={pageSizes[pageCursor] ?? []}
             activeElements={activeElements}
             schemasList={schemasList}
+            variableMap={variableMap}
             schemas={schemasList[pageCursor] ?? []}
             changeSchemas={changeSchemas}
             onSortEnd={onSortEnd}
@@ -329,6 +376,7 @@ const TemplateEditor = ({
             backgrounds={backgrounds}
             activeElements={activeElements}
             schemasList={schemasList}
+            variableMap={variableMap}
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
             sidebarOpen={sidebarOpen}

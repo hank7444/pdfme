@@ -12,6 +12,7 @@ interface Props {
   style?: React.CSSProperties;
   status?: 'is-warning' | 'is-danger';
   title?: string;
+  variableMapPath?: string;
   required?: boolean;
   readOnly?: boolean;
   dragOverlay?: boolean;
@@ -33,6 +34,7 @@ const Item = React.memo(
         value,
         status,
         title,
+        variableMapPath,
         required,
         readOnly,
         style,
@@ -119,6 +121,9 @@ const Item = React.memo(
                   {status === 'is-danger' ? i18n('notUniq') : ''}
                 </span>
               )}
+              {!!variableMapPath && 
+                `  => ${variableMapPath}`
+              }
             </Text>
             {readOnly && <Lock size={15} style={{ marginRight: '0.5rem' }} />}
             {required && <span style={{ color: 'red', marginRight: '0.5rem' }}>*</span>}

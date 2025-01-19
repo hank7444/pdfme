@@ -43,6 +43,7 @@ const getTemplate = (): Template => ({
       },
     ],
   ],
+  variableMap: [],
 });
 
 describe('mm2pt test', () => {
@@ -115,6 +116,7 @@ describe('checkFont test', () => {
           },
         ],
       ],
+      variableMap: [],
     });
     try {
       checkFont({ template: _getTemplate(), font: getSampleFont() });
@@ -205,6 +207,7 @@ Check this document: https://pdfme.com/docs/custom-fonts#about-font-type`
           },
         ],
       ],
+      variableMap: [],
     });
 
     try {
@@ -243,6 +246,7 @@ Check this document: https://pdfme.com/docs/custom-fonts`
           },
         ],
       ],
+      variableMap: [],
     });
 
     try {

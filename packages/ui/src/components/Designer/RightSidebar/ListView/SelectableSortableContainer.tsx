@@ -1,4 +1,4 @@
-import React, { useState, useContext, ReactNode } from 'react';
+import React, { useState, useContext, useMemo, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   closestCorners,
@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { SchemaForUI } from '@pdfme/common';
+import { SchemaForUI, VariableMapObj } from '@pdfme/common';
 import type { SidebarProps } from '../../../../types';
 import { PluginsRegistry } from '../../../../contexts';
 import Item from './Item';
@@ -26,11 +26,11 @@ import PluginIcon from "../../PluginIcon";
 const SelectableSortableContainer = (
   props: Pick<
     SidebarProps,
-    'schemas' | 'onEdit' | 'onSortEnd' | 'hoveringSchemaId' | 'onChangeHoveringSchemaId'
+    'schemas' | 'variableMap' | 'onEdit' | 'onSortEnd' | 'hoveringSchemaId' | 'onChangeHoveringSchemaId'
   >
 ) => {
   const { token } = theme.useToken();
-  const { schemas, onEdit, onSortEnd, hoveringSchemaId, onChangeHoveringSchemaId } = props;
+  const { schemas, variableMap, onEdit, onSortEnd, hoveringSchemaId, onChangeHoveringSchemaId } = props;
   const [selectedSchemas, setSelectedSchemas] = useState<SchemaForUI[]>([]);
   const [dragOverlaidItems, setClonedItems] = useState<SchemaForUI[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -39,6 +39,14 @@ const SelectableSortableContainer = (
     useSensor(PointerSensor, { activationConstraint: { distance: 15 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const schemaNameAndVarPathMap = useMemo(() => {
+    const map = new Map();
+    variableMap.forEach((v: VariableMapObj) => {
+      map.set(v.mapToField, v.path)
+    });
+    return map;
+  }, [variableMap]);
 
   const isItemSelected = (itemId: string): boolean =>
     selectedSchemas.map((i) => i.id).includes(itemId);
@@ -136,6 +144,7 @@ const SelectableSortableContainer = (
                     border: `1px solid ${schema.id === hoveringSchemaId ? token.colorPrimary : 'transparent'
                       }`,
                   }}
+                  variableMapPath={schemaNameAndVarPathMap.get(schema.name) || ''}
                   schema={schema}
                   schemas={schemas}
                   isSelected={isItemSelected(schema.id) || activeId === schema.id}

@@ -4,6 +4,7 @@ import { theme as antdTheme } from 'antd';
 import { SELECTABLE_CLASSNAME } from '../constants';
 import { PluginsRegistry, OptionsContext, I18nContext } from '../contexts';
 import * as pdfJs from 'pdfjs-dist';
+import { useDraggable, useDroppable, UniqueIdentifier } from '@dnd-kit/core';
 
 type RendererProps = Omit<
   UIRenderProps<Schema>,
@@ -16,6 +17,7 @@ type RendererProps = Omit<
   onChangeHoveringSchemaId?: (id: string | null) => void;
   scale: number;
   selectable?: boolean;
+  mapFieldPath?: string;
 };
 
 type ReRenderCheckProps = {
@@ -39,44 +41,89 @@ const useRerenderDependencies = ({ plugin, value, mode, scale, schema, options }
   return dependencies;
 };
 
+
+interface DropZoneProps {
+  children: ReactNode;
+  id: UniqueIdentifier;
+}
+
+export const DropZone = ({ children, id }: DropZoneProps) => {
+  const { setNodeRef, isOver } = useDroppable({ id })
+
+  const style = {
+    listStyleType: 'none',
+    border: '1px solid red',
+    backgroundColor: isOver ? 'grey' : 'inherit',
+  };
+
+  return (
+    <li ref={setNodeRef} style={style}>
+      {children}
+    </li>
+  );
+}
+
+
+
 const Wrapper = ({
   children,
   outline,
   onChangeHoveringSchemaId,
   schema,
-  selectable = true
-}: RendererProps & { children: ReactNode }) => (
-  <div
-    title={schema.name}
-    onMouseEnter={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(schema.id)}
-    onMouseLeave={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(null)}
-    className={selectable ? SELECTABLE_CLASSNAME : ''}
-    id={schema.id}
-    style={{
-      position: 'absolute',
-      cursor: schema.readOnly ? 'initial' : 'pointer',
-      height: schema.height * ZOOM,
-      width: schema.width * ZOOM,
-      top: schema.position.y * ZOOM,
-      left: schema.position.x * ZOOM,
-      transform: `rotate(${schema.rotate ?? 0}deg)`,
-      opacity: schema.opacity ?? 1,
-      outline,
-    }}
-  >
-    {schema.required &&
-      <span style={{
-        color: 'red',
-        position: 'absolute',
-        top: -12,
-        left: -12,
-        fontSize: 18,
-        fontWeight: 700,
-      }}>*</span>
-    }
-    {children}
-  </div>
-);
+  selectable = true,
+  mapFieldPath,
+}: RendererProps & { children: ReactNode }) => {
+  const id = schema.id;
+  const { setNodeRef, isOver } = useDroppable({ id, data: { name: schema.name } })
+
+  return (
+    <DropZone id={schema.id}>
+      <div
+        ref={setNodeRef}
+        title={schema.name}
+        onMouseEnter={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(schema.id)}
+        onMouseLeave={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(null)}
+        className={selectable ? SELECTABLE_CLASSNAME : ''}
+        id={schema.id}
+        style={{
+          position: 'absolute',
+          cursor: schema.readOnly ? 'initial' : 'pointer',
+          height: schema.height * ZOOM,
+          width: schema.width * ZOOM,
+          top: schema.position.y * ZOOM,
+          left: schema.position.x * ZOOM,
+          transform: `rotate(${schema.rotate ?? 0}deg)`,
+          opacity: schema.opacity ?? 1,
+          outline,
+          backgroundColor: isOver ? 'grey' : 'inherit',
+        }}
+      >
+        {schema.required &&
+          <span style={{
+            color: 'red',
+            position: 'absolute',
+            top: -12,
+            left: -12,
+            fontSize: 18,
+            fontWeight: 700,
+          }}>*</span>
+        }
+        {mapFieldPath && 
+          <span style={{
+            color: 'red',
+            backgroundColor: 'pink',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            fontSize: 18,
+            fontWeight: 700,
+          }}>{mapFieldPath}</span>
+        }
+        {children}
+      </div>
+    </DropZone>
+  )
+};
 
 const Renderer = (props: RendererProps) => {
   const pluginsRegistry = useContext(PluginsRegistry);

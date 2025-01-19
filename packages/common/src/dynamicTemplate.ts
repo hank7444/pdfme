@@ -203,6 +203,7 @@ function createNewTemplate(pages: LayoutNode[], basePdf: BlankPdf): Template {
   const newTemplate: Template = {
     schemas: Array.from({ length: pages.length }, () => [] as Schema[]),
     basePdf: basePdf,
+    variableMap: [],
   };
 
   const nameToSchemas = new Map<string, LayoutNode[]>();
