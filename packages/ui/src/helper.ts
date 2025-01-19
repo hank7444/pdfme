@@ -257,7 +257,7 @@ const convertSchemasForUI = (template: Template): SchemaForUI[][] => {
 
 export const template2SchemasList = async (_template: Template) => {
   const template = cloneDeep(_template);
-  const { basePdf, schemas } = template;
+  const { basePdf, schemas, variableMap } = template;
   const schemasForUI = convertSchemasForUI(template);
 
   let pageSizes: Size[] = [];
@@ -275,7 +275,7 @@ export const template2SchemasList = async (_template: Template) => {
   const ssl = schemasForUI.length;
   const psl = pageSizes.length;
 
-  return (
+  const schemaArray =  (
     ssl < psl
       ? schemasForUI.concat(new Array(psl - ssl).fill(cloneDeep([])))
       : schemasForUI.slice(0, pageSizes.length)
@@ -296,9 +296,11 @@ export const template2SchemasList = async (_template: Template) => {
 
     return schema;
   });
+
+  return [schemaArray, variableMap];
 };
 
-export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf): Template => ({
+export const schemasList2template = (schemasList: SchemaForUI[][], variableMap: any[], basePdf: BasePdf): Template => ({
   schemas: cloneDeep(schemasList).map((page) =>
     page.map((schema) => {
       // @ts-ignore
@@ -306,6 +308,7 @@ export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: Base
       return schema;
     })
   ),
+  variableMap: cloneDeep(variableMap),
   basePdf,
 });
 

@@ -108,6 +108,14 @@ export const Schema = z
   })
   .passthrough();
 
+export const VariableMapObj = z
+  .object({
+    type: z.string(),
+    mapToField: z.string(),
+    path: z.string(),
+  })
+  .passthrough();
+
 const SchemaForUIAdditionalInfo = z.object({ id: z.string() });
 export const SchemaForUI = Schema.merge(SchemaForUIAdditionalInfo);
 
@@ -128,10 +136,12 @@ export const BasePdf = z.union([CustomPdf, BlankPdf]);
 // Legacy keyed structure for BC - we convert to SchemaPageArray on import
 export const LegacySchemaPageArray = z.array(z.record(Schema));
 export const SchemaPageArray = z.array(z.array(Schema));
+export const VariableMapArray = z.array(VariableMapObj);
 
 export const Template = z
   .object({
     schemas: SchemaPageArray,
+    variableMap: VariableMapArray,
     basePdf: BasePdf,
     pdfmeVersion: z.string().optional(),
   })

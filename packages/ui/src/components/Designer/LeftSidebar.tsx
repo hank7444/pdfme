@@ -1,11 +1,11 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { ReactNode, useContext, useState, useEffect } from 'react';
 import {
   Schema,
   Plugin,
   BasePdf,
 } from '@pdfme/common';
 import { theme, Button } from 'antd';
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, useDroppable, UniqueIdentifier } from '@dnd-kit/core';
 import { CSS } from "@dnd-kit/utilities";
 import Renderer from '../Renderer';
 import { LEFT_SIDEBAR_WIDTH } from '../../constants';
@@ -13,11 +13,32 @@ import { PluginsRegistry } from '../../contexts';
 import PluginIcon from "./PluginIcon";
 
 
+interface DropZoneProps {
+  children: ReactNode;
+  id: UniqueIdentifier;
+}
+
+export const DropZone = ({ children, id }: DropZoneProps) => {
+  const { setNodeRef, isOver } = useDroppable({ id })
+
+  const style = {
+    listStyleType: 'none',
+    border: '1px solid red',
+    backgroundColor: isOver ? 'grey' : 'inherit',
+  };
+
+  return (
+    <li ref={setNodeRef} style={style}>
+      {children}
+    </li>
+  );
+}
+
 const Draggable = (props: { plugin: Plugin<any>, scale: number, basePdf: BasePdf, children: React.ReactNode }) => {
   const { scale, basePdf, plugin } = props;
   const { token } = theme.useToken();
   const defaultSchema = plugin.propPanel.defaultSchema as Schema;
-  const draggable = useDraggable({ id: defaultSchema.type, data: defaultSchema });
+  const draggable = useDraggable({ id: defaultSchema.type, data: defaultSchema, hello: 'world' });
   const { listeners, setNodeRef, attributes, transform, isDragging } = draggable;
   const style = { transform: CSS.Translate.toString(transform) }
 
