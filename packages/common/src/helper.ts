@@ -225,7 +225,6 @@ export const checkPlugins = (arg: { plugins: Plugins; template: Template }) => {
 
 const checkProps = <T>(data: unknown, zodSchema: z.ZodType<T>) => {
   try {
-    console.log('@@@ checkProps data', data)
     zodSchema.parse(data);
   } catch (e) {
     if (e instanceof z.ZodError) {

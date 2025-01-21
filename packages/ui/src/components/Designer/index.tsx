@@ -5,6 +5,7 @@ import {
   Template,
   Schema,
   SchemaForUI,
+  VariableMapArray,
   ChangeSchemas,
   DesignerProps,
   Size,
@@ -68,7 +69,7 @@ const TemplateEditor = ({
   const [hoveringSchemaId, setHoveringSchemaId] = useState<string | null>(null);
   const [activeElements, setActiveElements] = useState<HTMLElement[]>([]);
   const [schemasList, setSchemasList] = useState<SchemaForUI[][]>([[]] as SchemaForUI[][]);
-  const [variableMap, setVariableMap] = useState<any[]>([]); 
+  const [variableMap, setVariableMap] = useState<VariableMapArray>([]); 
   const [pageCursor, setPageCursor] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -134,7 +135,7 @@ const TemplateEditor = ({
       _changeSchemas({
         objs,
         schemas: schemasList[pageCursor],
-        variableMap: variableMap,
+        variableMap,
         basePdf: template.basePdf,
         pluginsRegistry,
         pageSize: pageSizes[pageCursor],
@@ -150,6 +151,7 @@ const TemplateEditor = ({
     activeElements,
     template,
     schemasList,
+    variableMap,
     changeSchemas,
     commitSchemas,
     removeSchemas,
@@ -163,6 +165,7 @@ const TemplateEditor = ({
 
   const updateTemplate = useCallback(async (newTemplate: Template) => {
     const [sl, variableMap] = await template2SchemasList(newTemplate);
+
     setSchemasList(sl);
     setVariableMap(variableMap);
     onEditEnd();
@@ -223,7 +226,7 @@ const TemplateEditor = ({
 
   const updatePage = async (sl: SchemaForUI[][], newPageCursor: number) => {
     setPageCursor(newPageCursor);
-    const newTemplate = schemasList2template(sl, template.basePdf);
+    const newTemplate = schemasList2template(sl, variableMap, template.basePdf);
     onChangeTemplate(newTemplate);
     await updateTemplate(newTemplate);
     void refresh(newTemplate);
@@ -278,9 +281,9 @@ const TemplateEditor = ({
 
           const active = event.active;
 
-          if (active.data.current.itemType === 'listItem') {
-            const { path, type } = active.data.current;
-            const mapToField = event.over.data.current.name;
+          if (active.data.current && active.data.current.itemType === 'listItem') {
+            const { path, type, name } = active.data?.current;
+            const mapToField = name;
             const newVariableMap = variableMap
               .filter(item => item.mapToField !== mapToField && item.path !== path);
         

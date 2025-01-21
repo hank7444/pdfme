@@ -38,6 +38,7 @@ describe('getDynamicTemplate', () => {
       ],
     ],
     basePdf: { width: 100, height: 100, padding: [padding, padding, padding, padding] },
+    variableMap: [],
   };
 
   const input = { a: 'a', b: 'b' };

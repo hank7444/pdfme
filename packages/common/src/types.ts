@@ -12,6 +12,7 @@ import {
   Schema,
   Font,
   SchemaForUI,
+  VariableMapArray,
   BasePdf,
   BlankPdf,
   CommonOptions,
@@ -165,6 +166,7 @@ export type Mode = z.infer<typeof Mode>;
 export type Size = z.infer<typeof Size>;
 export type Schema = z.infer<typeof Schema>;
 export type SchemaForUI = z.infer<typeof SchemaForUI>;
+export type VariableMapArray = z.infer<typeof VariableMapArray>;
 
 /**
  * Represents the Font type definition.

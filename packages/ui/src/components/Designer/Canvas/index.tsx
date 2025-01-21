@@ -398,7 +398,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             )}
             <Padding basePdf={basePdf} />
             <StaticSchema
-              template={{ schemas: schemasList, basePdf }}
+              template={{ schemas: schemasList, variableMap, basePdf }}
               input={Object.fromEntries(
                 schemasList.flat().map(({ name, content = '' }) => [name, content])
               )}

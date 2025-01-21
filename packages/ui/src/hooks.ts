@@ -6,6 +6,7 @@ import {
   Size,
   getB64BasePdf,
   SchemaForUI,
+  VariableMapArray,
   ChangeSchemas,
   isBlankPdf,
 } from '@pdfme/common';
@@ -167,6 +168,7 @@ interface UseInitEventsParams {
   activeElements: HTMLElement[];
   template: Template;
   schemasList: SchemaForUI[][];
+  variableMap: VariableMapArray
   changeSchemas: ChangeSchemas;
   commitSchemas: (newSchemas: SchemaForUI[]) => void;
   removeSchemas: (ids: string[]) => void;
@@ -184,6 +186,7 @@ export const useInitEvents = ({
   activeElements,
   template,
   schemasList,
+  variableMap,
   changeSchemas,
   commitSchemas,
   removeSchemas,
@@ -247,7 +250,7 @@ export const useInitEvents = ({
       redo: () => timeTravel('redo'),
       undo: () => timeTravel('undo'),
       save: () =>
-        onSaveTemplate && onSaveTemplate(schemasList2template(schemasList, template.basePdf)),
+        onSaveTemplate && onSaveTemplate(schemasList2template(schemasList, variableMap, template.basePdf)),
       remove: () => removeSchemas(getActiveSchemas().map((s) => s.id)),
       esc: onEditEnd,
       selectAll: () => onEdit(schemasList[pageCursor].map((s) => document.getElementById(s.id)!)),

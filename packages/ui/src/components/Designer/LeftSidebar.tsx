@@ -38,7 +38,7 @@ const Draggable = (props: { plugin: Plugin<any>, scale: number, basePdf: BasePdf
   const { scale, basePdf, plugin } = props;
   const { token } = theme.useToken();
   const defaultSchema = plugin.propPanel.defaultSchema as Schema;
-  const draggable = useDraggable({ id: defaultSchema.type, data: defaultSchema, hello: 'world' });
+  const draggable = useDraggable({ id: defaultSchema.type, data: defaultSchema });
   const { listeners, setNodeRef, attributes, transform, isDragging } = draggable;
   const style = { transform: CSS.Translate.toString(transform) }
 
