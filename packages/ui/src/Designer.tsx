@@ -64,6 +64,7 @@ class Designer extends BaseUIClass {
         <DesignerComponent
           template={this.template}
           onSaveTemplate={(template) => {
+            console.log('### onSaveTemplate', template)
             this.template = template;
             this.template.pdfmeVersion = PDFME_VERSION;
             if (this.onSaveTemplateCallback) {
@@ -71,6 +72,7 @@ class Designer extends BaseUIClass {
             }
           }}
           onChangeTemplate={(template) => {
+            console.log('### onChangeTemplate', template)
             this.template = template;
             this.template.pdfmeVersion = PDFME_VERSION;
             if (this.onChangeTemplateCallback) {

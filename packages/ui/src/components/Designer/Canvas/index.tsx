@@ -82,6 +82,7 @@ interface Props {
   onChangeHoveringSchemaId: (id: string | null) => void;
   pageCursor: number;
   schemasList: SchemaForUI[][];
+  variableMap: any[];
   scale: number;
   backgrounds: string[];
   pageSizes: Size[];
@@ -104,6 +105,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     size,
     activeElements,
     schemasList,
+    variableMap,
     hoveringSchemaId,
     onEdit,
     changeSchemas,
@@ -396,7 +398,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             )}
             <Padding basePdf={basePdf} />
             <StaticSchema
-              template={{ schemas: schemasList, basePdf }}
+              template={{ schemas: schemasList, variableMap, basePdf }}
               input={Object.fromEntries(
                 schemasList.flat().map(({ name, content = '' }) => [name, content])
               )}
@@ -461,14 +463,25 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
               totalPages: schemasList.length,
               currentPage: index + 1,
             };
-
             value = replacePlaceholders({ content, variables, schemas: schemasList });
+          }
+
+          let mapFieldPath = '';
+
+
+          if (mode !== 'designer') {
+            const varObj = variableMap.find(v => v.mapToField === schema.name);
+
+            if (varObj) {
+              mapFieldPath = varObj.path;
+            }
           }
 
           return (
             <Renderer
               key={schema.id}
               schema={schema}
+              mapFieldPath={mapFieldPath}
               basePdf={basePdf}
               value={value}
               onChangeHoveringSchemaId={onChangeHoveringSchemaId}
@@ -478,7 +491,8 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
                 changeSchemas(args.map(({ key, value }) => ({ key, value, schemaId: schema.id })));
               }}
               stopEditing={() => setEditing(false)}
-              outline={`1px ${hoveringSchemaId === schema.id ? 'solid' : 'dashed'} ${schema.readOnly && hoveringSchemaId !== schema.id ? 'transparent' : token.colorPrimary
+              outline={`1px ${hoveringSchemaId === schema.id ? 'solid' : 'dashed'} 
+                      ${schema.readOnly && hoveringSchemaId !== schema.id ? 'transparent' : token.colorPrimary
                 }`}
               scale={scale}
             />

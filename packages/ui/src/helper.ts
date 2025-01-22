@@ -9,6 +9,7 @@ import {
   Template,
   BasePdf,
   SchemaForUI,
+  VariableMapArray,
   Size,
   isBlankPdf,
   Plugins,
@@ -255,10 +256,11 @@ const convertSchemasForUI = (template: Template): SchemaForUI[][] => {
   return template.schemas as SchemaForUI[][];
 };
 
-export const template2SchemasList = async (_template: Template) => {
-  const template = cloneDeep(_template);
+export const template2SchemasList = async (_template: Template): Promise<[SchemaForUI[][], VariableMapArray]>  => {
+  const template = cloneDeep(_template) as Template;
   const { basePdf, schemas } = template;
   const schemasForUI = convertSchemasForUI(template);
+  const variableMap = template.variableMap as VariableMapArray;
 
   let pageSizes: Size[] = [];
   if (isBlankPdf(basePdf)) {
@@ -275,7 +277,7 @@ export const template2SchemasList = async (_template: Template) => {
   const ssl = schemasForUI.length;
   const psl = pageSizes.length;
 
-  return (
+  const schemaArray =  (
     ssl < psl
       ? schemasForUI.concat(new Array(psl - ssl).fill(cloneDeep([])))
       : schemasForUI.slice(0, pageSizes.length)
@@ -296,9 +298,11 @@ export const template2SchemasList = async (_template: Template) => {
 
     return schema;
   });
+
+  return [schemaArray, variableMap];
 };
 
-export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf): Template => ({
+export const schemasList2template = (schemasList: SchemaForUI[][], variableMap: VariableMapArray, basePdf: BasePdf): Template => ({
   schemas: cloneDeep(schemasList).map((page) =>
     page.map((schema) => {
       // @ts-ignore
@@ -306,6 +310,7 @@ export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: Base
       return schema;
     })
   ),
+  variableMap: cloneDeep(variableMap),
   basePdf,
 });
 
@@ -453,12 +458,13 @@ const handleTypeChange = (
 export const changeSchemas = (args: {
   objs: { key: string; value: any; schemaId: string }[];
   schemas: SchemaForUI[];
+  variableMap: VariableMapArray;
   basePdf: BasePdf;
   pluginsRegistry: Plugins;
   pageSize: { width: number; height: number };
-  commitSchemas: (newSchemas: SchemaForUI[]) => void;
+  commitSchemas: (newSchemas: SchemaForUI[], variableMap: VariableMapArray) => void;
 }) => {
-  const { objs, schemas, basePdf, pluginsRegistry, pageSize, commitSchemas } = args;
+  const { objs, schemas, variableMap, basePdf, pluginsRegistry, pageSize, commitSchemas } = args;
   const newSchemas = objs.reduce((acc, { key, value, schemaId }) => {
     const tgt = acc.find((s) => s.id === schemaId);
     if (!tgt) return acc;
@@ -473,5 +479,5 @@ export const changeSchemas = (args: {
 
     return acc;
   }, cloneDeep(schemas));
-  commitSchemas(newSchemas);
+  commitSchemas(newSchemas, variableMap);
 };
