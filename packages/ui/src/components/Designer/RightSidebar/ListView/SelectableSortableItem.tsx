@@ -14,6 +14,7 @@ interface Props {
   onEdit: (id: string) => void;
   schema: SchemaForUI;
   schemas: SchemaForUI[];
+  variableMapPath: string;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
@@ -24,6 +25,7 @@ const SelectableSortableItem = ({
   onEdit,
   schema,
   schemas,
+  variableMapPath,
   onMouseEnter,
   onMouseLeave,
 }: Props) => {
@@ -75,6 +77,7 @@ const SelectableSortableItem = ({
       value={schema.name}
       status={status}
       title={title}
+      variableMapPath={variableMapPath}
       required={schema.required}
       readOnly={schema.readOnly}
       style={{ ...selectedStyle, ...style }}

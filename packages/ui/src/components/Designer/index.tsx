@@ -284,7 +284,12 @@ const TemplateEditor = ({
 
           if (active.data.current && active.data.current.itemType === 'listItem') {
             const { path, type } = active.data?.current;
-            const mapToField = over.data?.current.name;
+            let mapToField = ''
+
+            if (over && over.data && over.data.current) {
+              mapToField = over.data.current.name;
+            } 
+
             const newVariableMap = variableMap
               .filter((item: VariableMapObj) => item.mapToField !== mapToField && item.path !== path);
         
@@ -343,6 +348,7 @@ const TemplateEditor = ({
             pageSize={pageSizes[pageCursor] ?? []}
             activeElements={activeElements}
             schemasList={schemasList}
+            variableMap={variableMap}
             schemas={schemasList[pageCursor] ?? []}
             changeSchemas={changeSchemas}
             onSortEnd={onSortEnd}

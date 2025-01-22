@@ -15,6 +15,7 @@ const ListView = (
   props: Pick<
     SidebarProps,
     | 'schemas'
+    | 'variableMap'
     | 'onSortEnd'
     | 'onEdit'
     | 'size'
@@ -25,6 +26,7 @@ const ListView = (
 ) => {
   const {
     schemas,
+    variableMap,
     onSortEnd,
     onEdit,
     size,
@@ -83,6 +85,7 @@ const ListView = (
         ) : (
           <SelectableSortableContainer
             schemas={schemas}
+            variableMap={variableMap}
             hoveringSchemaId={hoveringSchemaId}
             onChangeHoveringSchemaId={onChangeHoveringSchemaId}
             onSortEnd={onSortEnd}

@@ -2,6 +2,7 @@
   "schemas": [
     []
   ],
+  "variableMap": [],
   "basePdf": {
     "width": 210,
     "height": 297,
