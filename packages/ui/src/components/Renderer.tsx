@@ -76,7 +76,6 @@ const Wrapper = ({
   const id = schema.id;
   const { setNodeRef, isOver } = useDroppable({ id, data: { name: schema.name } })
 
-
   return (
     <DropZone id={schema.id}>
       <div
@@ -112,9 +111,10 @@ const Wrapper = ({
         {mapFieldPath && 
           <span style={{
             color: 'red',
+            backgroundColor: 'pink',
             position: 'absolute',
             top: 0,
-            left: 50,
+            right: 0,
             fontSize: 18,
             fontWeight: 700,
           }}>{mapFieldPath}</span>

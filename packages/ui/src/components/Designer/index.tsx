@@ -6,6 +6,7 @@ import {
   Schema,
   SchemaForUI,
   VariableMapArray,
+  VariableMapObj,
   ChangeSchemas,
   DesignerProps,
   Size,
@@ -124,7 +125,7 @@ const TemplateEditor = ({
       const newPageSchemasNames = newSchemas.map(v => v.name);
       const newVariableMap = variableMap.filter(v => newPageSchemasNames.includes(v.mapToField));
 
-      commitSchemas(newSchemas);
+      commitSchemas(newSchemas, newVariableMap);
       onEditEnd();
     },
     [schemasList, variableMap, pageCursor, commitSchemas]
@@ -278,14 +279,14 @@ const TemplateEditor = ({
           
           // Triggered after a schema is dragged & dropped from the left sidebar.
           if (!event.active) return;
-
           const active = event.active;
+          const over = event.over;
 
           if (active.data.current && active.data.current.itemType === 'listItem') {
-            const { path, type, name } = active.data?.current;
-            const mapToField = name;
+            const { path, type } = active.data?.current;
+            const mapToField = over.data?.current.name;
             const newVariableMap = variableMap
-              .filter(item => item.mapToField !== mapToField && item.path !== path);
+              .filter((item: VariableMapObj) => item.mapToField !== mapToField && item.path !== path);
         
             newVariableMap.push({ type, mapToField, path });
 
