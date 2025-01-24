@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Template, checkTemplate, getInputFromTemplate } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, getInputFromTemplate } from "@pdfme/common";
 import { Form, Viewer } from "@pdfme/ui";
+
 import {
   getFontsData,
   getBlankTemplate,
@@ -10,9 +11,79 @@ import {
   isJsonString,
 } from "./helper";
 import { NavItem, NavBar } from "./NavBar";
+import { VariableMapItem } from './types';
+
 
 type Mode = "form" | "viewer";
 
+interface DraggableItemProps {
+  id: string;
+  value: string;
+  onMouseDown: () => void
+}
+
+const VariableMapDraggableItem = ({ id, value, onMouseDown }: DraggableItemProps) => {
+  const style = {
+    marginBottom: 10, 
+    background: 'red', 
+    cursor: 'pointer',
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLLIElement>) => {
+    const dragData = { id, value };
+    event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+  };
+
+  return (
+    <li draggable="true" style={style} onMouseDown={onMouseDown} onDragStart={handleDragStart}>
+      {value}
+    </li>
+  )
+}
+
+const VariableMapList = () => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const style: React.CSSProperties  = {
+    top: 200,
+    left: 50,
+    right: 0,
+    position: 'absolute',
+    zIndex: 1,
+    height: 100,
+    width: 200,
+    background: 'pink',
+    textAlign: 'center',
+    overflow: isDragging ? 'visible' : 'auto',
+  }
+
+  const onMouseDown = () => {
+    setIsDragging(true)
+  }
+
+  return (
+    <div style={style}>
+      <ul>
+        <VariableMapDraggableItem id='Deal_Number_id' value='Deal_Number' onMouseDown={onMouseDown} />
+        <VariableMapDraggableItem id='Deal_Date_id' value='Deal_Date' onMouseDown={onMouseDown} />
+      </ul>
+    </div>
+  )
+}
 
 const initTemplate = () => {
   let template = getBlankTemplate();
@@ -30,16 +101,68 @@ const initTemplate = () => {
   return template;
 };
 
+const template2ViewTemplate = (template: Template, variableMap: VariableMapItem[]): Template => {
+  const newTemplate = cloneDeep(template);
+      
+  newTemplate.schemas = newTemplate.schemas.map((schemaAry) => {
+    return schemaAry.map((schema) => {
+      schema.originalType = schema.type as string;
+      schema.type = 'droppableDiv';
+
+      const variableMapItem = variableMap.find(v => v.name === schema.name);
+      schema.variableMap = variableMapItem ?? null;
+      return schema;
+    });
+  });
+  return newTemplate;
+}
+
+const getVariableMap = (): VariableMapItem[] => {
+  let variableMapJson: VariableMapItem[] = [];
+  try {
+    const variableMapString = localStorage.getItem('variableMap');
+    if (!variableMapString) {
+      return [];
+    }
+    variableMapJson = JSON.parse(variableMapString)
+  } catch {
+    localStorage.removeItem('variableMap');
+  }
+  return variableMapJson;
+}
+
+const extractVariableMap = (template: Template): VariableMapItem[] => {
+  const variableMap: VariableMapItem[] = [];
+
+  template.schemas.forEach((schemaAry) => {
+    schemaAry.forEach((schema) => {
+      if (schema.variableMap) {
+        const variableMapItem = schema.variableMap as VariableMapItem;
+        variableMap.push(variableMapItem);
+      }
+    });
+  });
+  return variableMap;
+}
+
+
+
+
 function FormAndViewerApp() {
   const uiRef = useRef<HTMLDivElement | null>(null);
   const ui = useRef<Form | Viewer | null>(null);
+
+  const [template, setTemplate] = useState<Template>(initTemplate());
+  const [variableMap, setVariableMap] = useState<VariableMapItem[]>(getVariableMap);
+  const [viewTemplate, setViewTemplate] = useState<Template>(template2ViewTemplate(template, variableMap))
 
   const [mode, setMode] = useState<Mode>(
     (localStorage.getItem("mode") as Mode) ?? "form"
   );
 
   const buildUi = useCallback((mode: Mode) => {
-    const template = initTemplate();
+    //const template = initTemplate();
+    //const variableMap = getVariableMap();
     let inputs = getInputFromTemplate(template);
     try {
       const inputsString = localStorage.getItem("inputs");
@@ -52,9 +175,11 @@ function FormAndViewerApp() {
     }
 
     if (uiRef.current) {
-      ui.current = new (mode === "form" ? Form : Viewer)({
+      const isFormMode = false;
+
+      ui.current = new (isFormMode ? Form : Viewer)({
         domContainer: uiRef.current,
-        template,
+        template: viewTemplate,
         inputs,
         options: {
           font: getFontsData(),
@@ -66,7 +191,7 @@ function FormAndViewerApp() {
             },
           },
         },
-        plugins: getPlugins(),
+        plugins: isFormMode ? getPlugins() : getPlugins(true),
       });
     }
   }, []);
@@ -76,6 +201,16 @@ function FormAndViewerApp() {
     setMode(value);
     localStorage.setItem("mode", value);
     buildUi(value);
+  };
+
+  const onSaveVariableMap = () => {
+    localStorage.setItem('variableMap', JSON.stringify(variableMap));
+    alert("Saved!");
+  }
+
+  const onGetVariableMap = () => {
+    alert(JSON.stringify(variableMap, null, 2));
+    console.log(variableMap);
   };
 
   const onGetInputs = () => {
@@ -115,6 +250,54 @@ function FormAndViewerApp() {
     }
   };
 
+
+  useEffect(() => {
+    const updateTemplateSchema = (action: string, viewTemplate: Template, eventData): void => {
+      viewTemplate.schemas = viewTemplate.schemas.map((schemaAry) => {
+        return schemaAry.map((schema) => {
+          if (schema.name === eventData.name) {
+            if (action === 'addVariableMap') {
+              schema.variableMap = eventData;
+            } else if (action === 'removeVariableMap') {
+              delete schema.variableMap;
+            }
+          }
+          return schema;
+        })
+      });
+
+      const variableMap = extractVariableMap(viewTemplate);
+      setViewTemplate(viewTemplate);
+      setVariableMap(variableMap);
+
+      if (ui.current) {
+        ui.current.updateTemplate(viewTemplate);
+      }
+    }
+
+    const handleVariableDropEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const eventData = customEvent.detail;
+
+      updateTemplateSchema('addVariableMap', viewTemplate, eventData);
+    };
+
+    const handleVariableRemoveEvent = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const eventData = customEvent.detail;
+
+      updateTemplateSchema('removeVariableMap', viewTemplate, eventData);
+    }
+
+    window.addEventListener('variableDropEvent', handleVariableDropEvent);
+    window.addEventListener('variableRemoveEvent', handleVariableRemoveEvent);
+    
+    return () => {
+      window.removeEventListener('variableDropEvent', handleVariableDropEvent);
+      window.removeEventListener('variableRemoveEvent', handleVariableRemoveEvent);
+    }
+  }, [])
+
   useEffect(() => {
     buildUi(mode);
     return () => {
@@ -129,6 +312,7 @@ function FormAndViewerApp() {
       label: "Mode",
       content: (
         <div className="mt-2">
+          {/*
           <input
             type="radio"
             id="form"
@@ -145,6 +329,8 @@ function FormAndViewerApp() {
             onChange={onChangeMode}
           />
           <label htmlFor="viewer"> Viewer </label>
+          */}
+          <label htmlFor="viewer"> Viewer </label>
         </div>
       ),
     },
@@ -157,6 +343,22 @@ function FormAndViewerApp() {
           onChange={(e) => handleLoadTemplate(e, ui.current)}
           className="w-full text-sm border"
         />
+      ),
+    },
+    {
+      label: "",
+      content: (
+        <button style={{ backgroundColor: 'orange' }} className="px-2 py-1 border" onClick={onSaveVariableMap}>
+          Save VariableMap
+        </button>
+      ),
+    },
+    {
+      label: "",
+      content: (
+        <button style={{ backgroundColor: 'orange' }} className="px-2 py-1 border" onClick={onGetVariableMap}>
+          Get VariableMap
+        </button>
       ),
     },
     {
@@ -207,6 +409,7 @@ function FormAndViewerApp() {
   return (
     <>
       <NavBar items={navItems} />
+      <VariableMapList />
       <div ref={uiRef} className="flex-1 w-full" />
     </>
   );

@@ -99,7 +99,7 @@ ${e}`);
   }
 };
 
-export const getPlugins = () => {
+export const getPlugins = (hasDraggableDiv = false) => {
   return {
     Text: text,
     'Multi-Variable Text': multiVariableText,
@@ -127,6 +127,7 @@ export const getPlugins = () => {
     // UPCA: barcodes.upca,
     // UPCE: barcodes.upce,
     // GS1DataMatrix: barcodes.gs1datamatrix,
+    ...(hasDraggableDiv && { DroppableDiv: plugins.droppableDiv }),
   };
 };
 
