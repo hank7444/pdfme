@@ -183,15 +183,38 @@ export const isJsonString = (str: string) => {
   return true;
 };
 
-export const getBlankTemplate = () =>
-  ({
+export const TEMPLATE_WIDTH = 210;
+export const TEMPLATE_HEIGHT = 297
+export const DEFAULT_WIDGET_WIDTH = 100;
+export const DEFAULT_WIDGET_HEIGHT = 60;
+
+export const getTemplatePadding = (width?: number , height?: number) => {
+  const widthPadding = width ? (TEMPLATE_WIDTH - width) / 2 : 10;
+  const heightPadding = height ? (TEMPLATE_HEIGHT - height) / 2: 20;
+
+  return { widthPadding, heightPadding };
+};
+
+export const getBlankTemplate = (width?: number , height?: number) => {
+  const { widthPadding, heightPadding } = getTemplatePadding(width, height);
+
+  return ({
     schemas: [{}],
     basePdf: {
-      width: 210,
-      height: 297,
-      padding: [20, 10, 20, 10],
+      width: TEMPLATE_WIDTH,
+      height: TEMPLATE_HEIGHT,
+      padding: [heightPadding, widthPadding, heightPadding, widthPadding],
     },
   } as Template);
+};
+
+export const uuid = () =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c == 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+
 
 export const getTemplateById = async (templateId: string): Promise<Template> => {
   const template = await fetch(`/template-assets/${templateId}/template.json`).then((res) => res.json());
