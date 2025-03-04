@@ -209,6 +209,7 @@ export const uiRender = async (arg: UIRenderProps<TableSchema>) => {
   const table = await createSingleTable(bodyWidthRange, arg);
   const showHead = table.settings.showHead;
 
+
   rootElement.innerHTML = '';
 
   const handleChangeEditingPosition = (
@@ -220,6 +221,8 @@ export const uiRender = async (arg: UIRenderProps<TableSchema>) => {
     editingPosition.colIndex = newPosition.colIndex;
     void uiRender(arg);
   };
+
+  console.log('@@@@ headEditingPosition: ', headEditingPosition)
 
   if (showHead) {
     renderRowUi({

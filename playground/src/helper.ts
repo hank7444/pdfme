@@ -183,15 +183,28 @@ export const isJsonString = (str: string) => {
   return true;
 };
 
-export const getBlankTemplate = () =>
-  ({
+export const TEMPLATE_WIDTH: number = 210;
+export const TEMPLATE_HEIGHT: number = 297
+
+export const getTemplatePadding = (width: number , height: number) => {
+  const widthPadding = (TEMPLATE_WIDTH - width) / 2;
+  const heightPadding = (TEMPLATE_HEIGHT - height) / 2;
+
+  return { widthPadding, heightPadding };
+}
+
+export const getBlankTemplate = (width: number , height: number) => {
+  const { widthPadding, heightPadding } = getTemplatePadding(width, height);
+
+  return ({
     schemas: [{}],
     basePdf: {
-      width: 210,
-      height: 297,
-      padding: [20, 10, 20, 10],
+      width: TEMPLATE_WIDTH,
+      height: TEMPLATE_HEIGHT,
+      padding: [heightPadding, widthPadding, heightPadding, widthPadding],
     },
   } as Template);
+}
 
 export const getTemplateById = async (templateId: string): Promise<Template> => {
   const template = await fetch(`/template-assets/${templateId}/template.json`).then((res) => res.json());

@@ -1,5 +1,6 @@
 import { Routes, Route, useSearchParams } from "react-router-dom";
 import Designer from "./Designer";
+import WidgetDesigner from "./WidgetDesigner";
 import FormAndViewer from "./FormAndViewer";
 import Templates from "./Templates";
 import Header from "./Header";
@@ -13,6 +14,7 @@ function App() {
       {!isEmbedded && <Header />}
       <Routes>
         <Route path="/" element={<Designer />} />
+        <Route path="/widget-designer" element={<WidgetDesigner />} />
         <Route path="/form-viewer" element={<FormAndViewer />} />
         <Route path="/templates" element={<Templates isEmbedded={isEmbedded} />} />
       </Routes>
