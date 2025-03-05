@@ -4,6 +4,7 @@ import type { PDFPage, PDFDocument } from '@pdfme/pdf-lib';
 import type { ThemeConfig, GlobalToken } from 'antd';
 /**  @ts-ignore -- optional interface, will gracefully degrade to `any` if `form-render` isn't installed*/
 import type { WidgetProps as _PropPanelWidgetProps, Schema as _PropPanelSchema } from 'form-render';
+
 import {
   Lang,
   Dict,
@@ -26,6 +27,7 @@ import {
   ColorType,
   LegacySchemaPageArray,
   SchemaPageArray,
+  Widget,
 } from './schema.js';
 
 export type PropPanelSchema = _PropPanelSchema;
@@ -35,6 +37,8 @@ export type ChangeSchemaItem = {
   schemaId: string
 };
 export type ChangeSchemas = (objs: ChangeSchemaItem[]) => void;
+export type CommitSchemas = (newSchemas: SchemaForUI[]) => void;
+export type RemoveSchemas = (ids: string[]) => void;
 
 /**
  * Properties used for PDF rendering.
@@ -104,6 +108,8 @@ export type UIRenderProps<T extends Schema> = {
  * @property {SchemaForUI} activeSchema - The currently active schema for UI rendering.
  * @property {HTMLElement[]} activeElements - Array of currently active HTML elements in the UI.
  * @property {ChangeSchemas} changeSchemas - Function to change multiple schemas simultaneously.
+ * @property {CommitSchemas} commitSchemas - Function to commit schemas of a page.
+ * @property {RemoveSchemas} removeSchemas - Function to remove mutiple schemas.
  * @property {SchemaForUI[]} schemas - Array of schemas for UI rendering.
  * @property {Size} pageSize - The size of the page being edited.
  * @property {UIOptions} options - UI options for the property panel.
@@ -115,10 +121,13 @@ type PropPanelProps = {
   activeSchema: SchemaForUI;
   activeElements: HTMLElement[];
   changeSchemas: ChangeSchemas;
+  commitSchemas: CommitSchemas;
+  removeSchemas: RemoveSchemas;
   schemas: SchemaForUI[];
   options: UIOptions;
   theme: GlobalToken;
   i18n: (key: keyof Dict | string) => string;
+  [key: string]: any
 };
 
 export type PropPanelWidgetProps = _PropPanelWidgetProps & PropPanelProps;
@@ -165,7 +174,7 @@ export type Dict = z.infer<typeof Dict>;
 export type Mode = z.infer<typeof Mode>;
 export type Size = z.infer<typeof Size>;
 export type Schema = z.infer<typeof Schema>;
-export type SchemaForUI = z.infer<typeof SchemaForUI>;
+export type SchemaForUI = z.infer<typeof Schema>;
 
 /**
  * Represents the Font type definition.
@@ -189,3 +198,7 @@ export type PreviewProps = z.infer<typeof PreviewProps> & { plugins?: Plugins };
 export type DesignerProps = z.infer<typeof DesignerProps> & { plugins?: Plugins };
 export type SchemaPageArray = z.infer<typeof SchemaPageArray>;
 export type LegacySchemaPageArray = z.infer<typeof LegacySchemaPageArray>;
+
+
+// Customize
+export type Widget = z.infer<typeof Widget>;

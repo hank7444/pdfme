@@ -4,7 +4,7 @@ import type { ChangeSchemaItem, Dict, SchemaForUI, PropPanelWidgetProps, PropPan
 import type { SidebarProps } from '../../../../types';
 import { Menu } from 'lucide-react';
 import { I18nContext, PluginsRegistry, OptionsContext } from '../../../../contexts';
-import { getSidebarContentHeight, debounce } from '../../../../helper';
+import { getSidebarContentHeight, debounce, getWidgetGroupElemType } from '../../../../helper';
 import { theme, Typography, Button, Divider } from 'antd';
 import AlignWidget from './AlignWidget';
 import WidgetRenderer from './WidgetRenderer';
@@ -13,8 +13,12 @@ import { InternalNamePath, ValidateErrorEntity } from "rc-field-form/es/interfac
 
 const { Text } = Typography;
 
+
+
 type DetailViewProps = Pick<SidebarProps,
-  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'changeSchemas' | 'activeElements' | 'deselectSchema' | 'isEditWidgetMode'
+  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'isEditWidgetMode' | 'groupManager' |
+  'changeSchemas' | 'commitSchemas' | 'removeSchemas' |
+  'activeElements' | 'deselectSchema' | 'selectoRef'   
 > & {
   activeSchema: SchemaForUI;
 };
@@ -23,7 +27,6 @@ const DetailView = (props: DetailViewProps) => {
   const { token } = theme.useToken();
   const { size, schemasList, changeSchemas, deselectSchema, activeSchema, isEditWidgetMode } = props;
   const form = useForm();
-
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
   const options = useContext(OptionsContext);
@@ -31,6 +34,8 @@ const DetailView = (props: DetailViewProps) => {
   const [widgets, setWidgets] = useState<{
     [key: string]: (props: PropPanelWidgetProps) => React.JSX.Element;
   }>({});
+
+  const widgetGroupType = getWidgetGroupElemType(activeSchema);
 
   useEffect(() => {
     const newWidgets: typeof widgets = {
@@ -82,6 +87,105 @@ const DetailView = (props: DetailViewProps) => {
   const uniqueSchemaName = useRef((value: string): boolean => true);
 
   const validateUniqueSchemaName = (_: any, value: string): boolean => uniqueSchemaName.current(value)
+
+
+
+  const getPropPanelSchema = () => {
+    const propPanelSchema: PropPanelSchema = {
+      type: 'object',
+      column: 2,
+      properties: {
+        type: {
+          title: i18n('type'),
+          type: 'string',
+          widget: 'select',
+          props: { options: typeOptions },
+          required: true,
+          span: 12,
+        },
+        name: {
+          title: i18n('fieldName'),
+          type: 'string',
+          required: true,
+          span: 12,
+          rules: [{
+            validator: validateUniqueSchemaName,
+            message: i18n('validation.uniqueName'),
+          }],
+          props: { autoComplete: "off" }
+        },
+        editable: { title: i18n('editable'), type: 'boolean', span: 8, hidden: defaultSchema?.readOnly !== undefined },
+        required: { title: i18n('required'), type: 'boolean', span: 16, hidden: "{{!formData.editable}}" },
+        '-': { type: 'void', widget: 'Divider' },
+        align: { title: i18n('align'), type: 'void', widget: 'AlignWidget' },
+        position: {
+          type: 'object',
+          widget: 'card',
+          properties: {
+            x: { title: 'X', type: 'number', widget: 'inputNumber', required: true, span: 8, min: 0 },
+            y: { title: 'Y', type: 'number', widget: 'inputNumber', required: true, span: 8, min: 0 },
+          }
+        },
+        width: {
+          title: i18n('width'),
+          type: 'number',
+          widget: 'inputNumber',
+          required: true,
+          span: 6,
+          props: { min: 0 },
+        },
+        height: {
+          title: i18n('height'),
+          type: 'number',
+          widget: 'inputNumber',
+          required: true,
+          span: 6,
+          props: { min: 0 },
+        },
+        rotate: {
+          title: i18n('rotate'),
+          type: 'number',
+          widget: 'inputNumber',
+          disabled: isEditWidgetMode ? true : defaultSchema?.rotate === undefined,
+          max: 360,
+          props: { min: 0 },
+          span: 6,
+        },
+        opacity: {
+          title: i18n('opacity'),
+          type: 'number',
+          widget: 'inputNumber',
+          disabled: isEditWidgetMode ? true : defaultSchema?.opacity === undefined,
+          props: { step: 0.1, min: 0, max: 1 },
+          span: 6,
+        },
+      },
+    };
+
+    if (widgetGroupType !== 'default') {
+      delete propPanelSchema.properties.editable
+      delete propPanelSchema.properties.required
+      delete propPanelSchema.properties.rotate;
+      delete propPanelSchema.properties.opacity;
+      delete propPanelSchema.properties.align;
+      propPanelSchema.properties.type.disabled = true;
+      propPanelSchema.properties.width.disabled = true;
+      propPanelSchema.properties.height.disabled = true;
+      propPanelSchema.properties.position.properties.x.disabled = true;
+      propPanelSchema.properties.position.properties.y.disabled = true;
+    }
+
+    if (widgetGroupType === 'child') {
+      propPanelSchema.properties.name.disabled = true;
+    }
+
+
+    return propPanelSchema;
+  }
+
+
+
+
 
   const handleWatch = debounce((formSchema: any) => {
     const formAndSchemaValuesDiffer = (formValue: any, schemaValue: any): boolean => {
@@ -149,77 +253,7 @@ Check this document: https://pdfme.com/docs/custom-schemas`);
     value: value?.propPanel.defaultSchema.type,
   }));
   const defaultSchema = activePlugin.propPanel.defaultSchema;
-
-  const propPanelSchema: PropPanelSchema = {
-    type: 'object',
-    column: 2,
-    properties: {
-      type: {
-        title: i18n('type'),
-        type: 'string',
-        widget: 'select',
-        props: { options: typeOptions },
-        required: true,
-        span: 12,
-      },
-      name: {
-        title: i18n('fieldName'),
-        type: 'string',
-        required: true,
-        span: 12,
-        rules: [{
-          validator: validateUniqueSchemaName,
-          message: i18n('validation.uniqueName'),
-        }],
-        props: { autoComplete: "off" }
-      },
-      editable: { title: i18n('editable'), type: 'boolean', span: 8, hidden: defaultSchema?.readOnly !== undefined },
-      required: { title: i18n('required'), type: 'boolean', span: 16, hidden: "{{!formData.editable}}" },
-      '-': { type: 'void', widget: 'Divider' },
-      align: { title: i18n('align'), type: 'void', widget: 'AlignWidget' },
-      position: {
-        type: 'object',
-        widget: 'card',
-        properties: {
-          x: { title: 'X', type: 'number', widget: 'inputNumber', required: true, span: 8, min: 0 },
-          y: { title: 'Y', type: 'number', widget: 'inputNumber', required: true, span: 8, min: 0 },
-        }
-      },
-      width: {
-        title: i18n('width'),
-        type: 'number',
-        widget: 'inputNumber',
-        required: true,
-        span: 6,
-        props: { min: 0 },
-      },
-      height: {
-        title: i18n('height'),
-        type: 'number',
-        widget: 'inputNumber',
-        required: true,
-        span: 6,
-        props: { min: 0 },
-      },
-      rotate: {
-        title: i18n('rotate'),
-        type: 'number',
-        widget: 'inputNumber',
-        disabled: isEditWidgetMode ? true : defaultSchema?.rotate === undefined,
-        max: 360,
-        props: { min: 0 },
-        span: 6,
-      },
-      opacity: {
-        title: i18n('opacity'),
-        type: 'number',
-        widget: 'inputNumber',
-        disabled: isEditWidgetMode ? true : defaultSchema?.opacity === undefined,
-        props: { step: 0.1, min: 0, max: 1 },
-        span: 6,
-      },
-    },
-  };
+  const propPanelSchema: PropPanelSchema = getPropPanelSchema();
 
   if (typeof activePropPanelSchema === 'function') {
     const { schemasList: _, ...propPanelProps } = props;

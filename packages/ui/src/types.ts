@@ -1,4 +1,6 @@
-import type { SchemaForUI, Size, ChangeSchemas } from '@pdfme/common';
+import React from 'react';
+import Selecto from 'Selecto';
+import type { SchemaForUI, Size, ChangeSchemas, CommitSchemas, RemoveSchemas } from '@pdfme/common';
 
 export type SidebarProps = {
   height: number;
@@ -10,10 +12,15 @@ export type SidebarProps = {
   schemas: SchemaForUI[];
   schemasList: SchemaForUI[][];
   onSortEnd: (sortedSchemas: SchemaForUI[]) => void;
-  onEdit: (id: string) => void;
+  onEdit: (ids: string[]) => void;
   onEditEnd: () => void;
   changeSchemas: ChangeSchemas;
+  commitSchemas: CommitSchemas;
+  removeSchemas: RemoveSchemas;
   deselectSchema: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (sidebarOpen: boolean) => void;
+  onEditFunc: (atargets: HTMLElement[]) => void;
+  //selecttoRef: React.MutableRefObject<Selecto>;
+  [key: string]: any
 };

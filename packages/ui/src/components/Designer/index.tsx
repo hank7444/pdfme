@@ -12,6 +12,7 @@ import {
   px2mm,
 } from '@pdfme/common';
 import { DndContext } from '@dnd-kit/core';
+import Selecto, { ElementType } from 'react-selecto';
 import RightSidebar from './RightSidebar/index';
 import LeftSidebar from './LeftSidebar';
 import Canvas from './Canvas/index';
@@ -65,6 +66,7 @@ const TemplateEditor = forwardRef(({
   const future = useRef<SchemaForUI[][]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const paperRefs = useRef<HTMLDivElement[]>([]);
+  const selectoRef = useRef<Selecto>(null);
 
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -344,12 +346,32 @@ const TemplateEditor = forwardRef(({
             schemasList={schemasList}
             schemas={schemasList[pageCursor] ?? []}
             changeSchemas={changeSchemas}
+            commitSchemas={commitSchemas}
+            removeSchemas={removeSchemas}
             onSortEnd={onSortEnd}
-            onEdit={id => {
-              const editingElem = document.getElementById(id);
-              editingElem && onEdit([editingElem]);
+            onEdit={(ids: string[]) => {
+              const editingElems = ids
+                .map(id => document.getElementById(id))
+                .filter(element => element !== null);
+
+              editingElems.length && onEdit(editingElems);
+
+              /*
+              if (editingElem) {
+                const widgetGroupId = editingElem?.getAttribute('data-widgetgroup-id') || '';
+                if (widgetGroupId === editingElem.id) {
+                  const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+                    .filter((elem: HTMLElement) => elem.getAttribute('data-widgetgroup-id') === widgetGroupId);
+                  onEdit(widgetGroupElements);
+                } else {
+                  onEdit([editingElem]);
+                }
+              }
+              */
             }}
             onEditEnd={onEditEnd}
+            onEditFunc={onEdit}
+            selectoRef={selectoRef}
             deselectSchema={onEditEnd}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
@@ -359,6 +381,7 @@ const TemplateEditor = forwardRef(({
           <Canvas
             ref={canvasRef}
             paperRefs={paperRefs}
+            selectoRef={selectoRef}
             basePdf={template.basePdf}
             editWidgetInfo={template.editWidgetInfo}
             hoveringSchemaId={hoveringSchemaId}

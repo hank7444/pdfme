@@ -1,3 +1,4 @@
+
 import {
   PDFME_VERSION,
   MM_TO_PT_RATIO,
@@ -10,6 +11,8 @@ import {
 import type {
   ChangeSchemaItem,
   ChangeSchemas,
+  CommitSchemas,
+  RemoveSchemas,
   SchemaPageArray,
   PropPanel,
   PropPanelSchema,
@@ -37,6 +40,9 @@ import type {
   UIProps,
   PreviewProps,
   DesignerProps,
+
+  
+  Widget,
 } from './types';
 import {
   cloneDeep,
@@ -117,6 +123,8 @@ export type {
   DesignerProps,
   ChangeSchemaItem,
   ChangeSchemas,
+  CommitSchemas,
+  RemoveSchemas,
   SchemaPageArray,
   PropPanel,
   PropPanelSchema,
@@ -125,4 +133,6 @@ export type {
   UIRenderProps,
   Mode,
   Plugin,
+
+  Widget,
 };

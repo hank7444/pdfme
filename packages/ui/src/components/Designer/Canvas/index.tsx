@@ -10,13 +10,13 @@ import React, {
   useCallback,
 } from 'react';
 import { theme, Button } from 'antd';
-import { OnDrag, OnResize, OnClick, OnRotate } from 'react-moveable';
+import { OnDrag, OnResize, OnClick, onClickGroup, OnRotate } from 'react-moveable';
 import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, EditWidgetInfo, replacePlaceholders } from '@pdfme/common';
 import { PluginsRegistry } from '../../../contexts';
 import { X } from 'lucide-react';
 import { RULER_HEIGHT, RIGHT_SIDEBAR_WIDTH } from '../../../constants';
 import { usePrevious } from '../../../hooks';
-import { uuid, round, flatten } from '../../../helper';
+import { uuid, round, flatten, getWidgetGroupHTMLElemType } from '../../../helper';
 import Paper from '../../Paper';
 import Renderer from '../../Renderer';
 import Selecto from './Selecto';
@@ -92,6 +92,7 @@ interface Props {
   changeSchemas: ChangeSchemas;
   removeSchemas: (ids: string[]) => void;
   paperRefs: MutableRefObject<HTMLDivElement[]>;
+  selectoRef: MutableRefObject<Selecto>;
   sidebarOpen: boolean;
   isEditWidgetMode: boolean;
   isWidgetDesigner: boolean;
@@ -114,6 +115,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     removeSchemas,
     onChangeHoveringSchemaId,
     paperRefs,
+    selectoRef,
     sidebarOpen,
     isEditWidgetMode,
     isWidgetDesigner,
@@ -128,6 +130,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   const [editing, setEditing] = useState(false);
 
   const prevSchemas = usePrevious(schemasList[pageCursor]);
+
 
   const onKeydown = (e: KeyboardEvent) => {
     if (e.shiftKey) setIsPressShiftKey(true);
@@ -215,10 +218,53 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   };
 
   const onDragEnds = ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => {
+
+    // I don't know why Div DOM Elment don't move.
+    /*
+    const widgetParantsPos = targets.reduce((accu, target) => {
+      const { style: { top, left }, id } = target;
+      const { widgetGroupType } = getWidgetGroupHTMLElemType(target)
+
+      if (widgetGroupType === 'parent' && !accu[id]) {
+        accu[id] = {
+          top: fmt4Num(top),
+          left: fmt4Num(left),
+        };
+      }
+      return accu;
+    }, {} as { [key: string]: { top: number, left: number } });
+
+    const arg = targets.map((target) => {
+      const { widgetGroupId, widgetGroupType } = getWidgetGroupHTMLElemType(target);
+      const { style: { top: tarTop, left: tarLeft }, id } = target;
+
+      let top = fmt4Num(tarTop);
+      let left = fmt4Num(tarLeft);
+
+      // If targets is child comps of a groupWidget, it should keep the relative coordinates with it parant comp
+      if (widgetGroupType === 'child' && !!widgetParantsPos[widgetGroupId]) {
+        let top = Number(target.getAttribute('data-widgetgroup-pos-y')!) || 0;
+        let left = Number(target.getAttribute('data-widgetgroup-pos-x')!) || 0;
+
+      
+
+        const { top: parantTop, left: parantLeft } = widgetParantsPos[widgetGroupId]; 
+        top += parantTop;
+        left += parantLeft;
+      }
+
+      return [
+        { key: 'position.y', value: fmt(`${top}px`), schemaId: id },
+        { key: 'position.x', value: fmt(`${left}px`), schemaId: id },
+      ];
+    });
+    */
+
     const arg = targets.map(({ style: { top, left }, id }) => [
       { key: 'position.y', value: fmt(top), schemaId: id },
       { key: 'position.x', value: fmt(left), schemaId: id },
     ]);
+
     changeSchemas(flatten(arg));
   };
 
@@ -337,7 +383,18 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     setEditing(true);
   };
 
-  const rotatable = useMemo(() => {
+  const onGroupClickMoveable = (e: onClickGroup) => {
+    /*
+    console.log('#### onGroupClickMoveable!!!!', e);
+    e.inputEvent.stopPropagation();
+    setEditing(true);
+    */
+
+    e.inputEvent.stopPropagation();
+  };
+
+
+  const [rotatable, resizable] = useMemo(() => {
     const selectedSchemas = (schemasList[pageCursor] || []).filter((s) =>
       activeElements.map((ae) => ae.id).includes(s.id)
     );
@@ -347,10 +404,25 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
       (plugin) => plugin?.propPanel.defaultSchema
     );
 
-    return uniqueSchemaTypes.every(
+    const hasWidgetGroupComp = selectedSchemas.some((schema: SchemaForUI) => {
+      return schema.type === 'widgetGroup' || schema.name.includes('widgetGroup_');
+    });
+    
+    const rotatable = uniqueSchemaTypes.every(
       (type) => defaultSchemas.find((ds) => ds.type === type)?.rotate !== undefined
-    );
+    ) && !hasWidgetGroupComp;
+
+    return [rotatable, !hasWidgetGroupComp];
   }, [activeElements, pageCursor, schemasList, pluginsRegistry]);
+
+  const isSelectedSingleWidgetGroupElem = 
+    activeElements.length === 1 && 
+    !!activeElements[0].getAttribute('data-widgetgroup-id') &&
+    activeElements[0].getAttribute('data-widgetgroup-id') !== activeElements[0].id;
+
+  if (moveable.current) {
+    moveable.current.updateTarget();
+  }
 
   return (
     <div
@@ -363,10 +435,12 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
       ref={ref}
     >
       <Selecto
+        selectoRef={selectoRef}
         container={paperRefs.current[pageCursor]}
         continueSelect={isPressShiftKey}
         onDragStart={(e) => {
           const { inputEvent } = e;
+
           const isMoveableElement = moveable.current?.isMoveableElement(inputEvent.target);
           if ((inputEvent.type === 'touchstart' && e.isTrusted) || isMoveableElement) {
             e.stop();
@@ -379,15 +453,92 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             removeSchemas(activeElements.map((ae) => ae.id));
           }
         }}
-        onSelect={({ added, removed, selected, inputEvent }) => {
+        onSelect={({ added, removed, selected, inputEvent, isDragStartEnd }) => {
           const isClick = inputEvent.type === 'mousedown';
           let newActiveElements: HTMLElement[] = isClick ? (selected as HTMLElement[]) : [];
+
           if (!isClick && added.length > 0) {
             newActiveElements = activeElements.concat(added as HTMLElement[]);
           }
           if (!isClick && removed.length > 0) {
             newActiveElements = activeElements.filter((ae) => !removed.includes(ae));
           }
+          
+          /* TBD
+          if (newActiveElements.length === 1 && getWidgetGroupHTMLElemType(newActiveElements[0]) === 'parent') {
+            
+            // Get all unique widgetGroup Ids
+            const widgetGroupIds: string[] = [
+              ...new Set(
+                newActiveElements
+                  .map(elem => elem.getAttribute('data-widgetgroup-id'))
+                  .filter(id => id !== undefined && id !== null)
+              )
+            ];
+
+            // Get all elements that contain these widgetGroup Ids.
+            const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+              .filter((elem: HTMLElement) => widgetGroupIds.includes(elem.getAttribute('data-widgetgroup-id') || ''));
+
+
+            newActiveElements = [
+              ...new Map([
+                ...newActiveElements,
+                ...widgetGroupElements
+              ].map((item) => [item.id, item]))
+              .values()
+            ];
+          }
+          */
+
+          // select all group items
+          
+          // Get all unique widgetGroup Ids
+          const widgetGroupIds: string[] = [
+            ...new Set(
+              newActiveElements
+                .map(elem => getWidgetGroupHTMLElemType(elem).widgetGroupId)
+                .filter(id => !!id)
+            )
+          ];
+
+          if (widgetGroupIds.length) {
+            // Get all elements that contain these widgetGroup Ids.
+            const widgetGroupElements: HTMLElement[] = 
+              selectoRef.current!.getSelectableElements()
+                .filter((elem: HTMLElement) => widgetGroupIds.includes(getWidgetGroupHTMLElemType(elem).widgetGroupId) || '');
+
+            /*
+              Find the position of the first element in newActiveElements that matches the first widgetGroupId from widgetGroupIds.
+              If a match is found, merge the widgetGroupElements into newActiveElements at that position. 
+              Ensure no duplicates are included by using a Set to track seen elements, while preserving the original order of newActiveElements.
+            */
+            const insertIndex = newActiveElements.findIndex((elem) => 
+              getWidgetGroupHTMLElemType(elem).widgetGroupId === widgetGroupIds[0]);
+
+            if (insertIndex !== -1) {
+              newActiveElements = [
+                ...newActiveElements.slice(0, insertIndex + 1),
+                ...widgetGroupElements,
+                ...newActiveElements.slice(insertIndex + 1),
+              ];
+            }
+            
+            /*
+              Iterate through newActiveElements and build a new array containing only unique items based on their ID.
+              A Set is used to track seen IDs, ensuring duplicates are excluded while preserving the original order.
+            */
+            const seen = new Set();
+            newActiveElements = newActiveElements.filter(item => {
+              const id = item.id;
+              if (!seen.has(id)) {
+                seen.add(id);
+                return true; 
+              }
+              return false; 
+            });
+          }
+
           onEdit(newActiveElements);
 
           if (newActiveElements != activeElements) {
@@ -399,6 +550,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           }
         }}
       />
+      
       <Paper
         paperRefs={paperRefs}
         scale={scale}
@@ -409,7 +561,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         hasRulers={true}
         renderPaper={({ index, paperSize }) => (
           <>
-            {!isEditWidgetMode && !editing && activeElements.length > 0 && pageCursor === index && (
+            {!isEditWidgetMode && !isSelectedSingleWidgetGroupElem && !editing && activeElements.length > 0 && pageCursor === index && (
               <DeleteButton activeElements={activeElements} />
             )}
             
@@ -449,6 +601,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
                   horizontalGuidelines={getGuideLines(horizontalGuides.current, index)}
                   verticalGuidelines={getGuideLines(verticalGuides.current, index)}
                   keepRatio={isPressShiftKey}
+                  resizable={resizable}
                   rotatable={rotatable}
                   onDrag={onDrag}
                   onDragEnd={onDragEnd}
@@ -460,6 +613,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
                   onResizeEnd={onResizeEnd}
                   onResizeGroupEnd={onResizeEnds}
                   onClick={onClickMoveable}
+                  onClickGroup={onGroupClickMoveable}
                 />
               )
             )}
