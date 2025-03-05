@@ -158,9 +158,12 @@ function DesignerApp() {
       const id: string = selectedWidgetId || generateUUID();
       const { widthPadding, heightPadding } = getTemplatePadding(widgetWidth, widgetHeight);
       const schemas = template?.schemas[0].map((schema) => {
-
+        const name = schema.name.indexOf(id) === -1
+          ? `${id}_${schema.name}`
+          : schema.name;localStorage.setItem("widgets", JSON.stringify(widgets));
+      
         const newSchema = Object.assign(cloneDeep(schema), {
-          name: `${id}_${schema.name}`,
+          name,
           position: {
             x: schema.position.x - widthPadding,
             y: schema.position.y - heightPadding,
