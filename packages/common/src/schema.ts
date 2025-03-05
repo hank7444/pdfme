@@ -129,6 +129,16 @@ export const BasePdf = z.union([CustomPdf, BlankPdf]);
 export const LegacySchemaPageArray = z.array(z.record(Schema));
 export const SchemaPageArray = z.array(z.array(Schema));
 
+export const Widget = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    width: z.number(),
+    height: z.number(),
+    schemas: z.array(Schema),
+  })
+  .passthrough();
+
 export const Template = z
   .object({
     schemas: SchemaPageArray,

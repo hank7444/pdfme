@@ -36,6 +36,9 @@ import type {
   UIProps,
   PreviewProps,
   DesignerProps,
+
+  
+  Widget,
 } from './types';
 import {
   cloneDeep,
@@ -123,4 +126,6 @@ export type {
   UIRenderProps,
   Mode,
   Plugin,
+
+  Widget,
 };

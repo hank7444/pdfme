@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, Widget } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
@@ -13,21 +13,30 @@ import {
   generatePDF,
   downloadJsonFile,
   translations,
+  generateUUID,
+  DEFAULT_WIDGET_WIDTH,
+  DEFAULT_WIDGET_HEIGHT,
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
+
 
 function DesignerApp() {
   const [searchParams, setSearchParams] = useSearchParams();
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
+  
   const [lang, setLang] = useState<Lang>("en");
 
-  const [widgetWidth, setWidgetWidth] = useState<number>(100);
-  const [widgetHeight, setWidgetHeight] = useState<number>(60);
-  const [IsDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
+  const [widgetWidth, setWidgetWidth] = useState<number>(DEFAULT_WIDGET_WIDTH);
+  const [widgetHeight, setWidgetHeight] = useState<number>(DEFAULT_WIDGET_HEIGHT);
+  const [widgetName, setWidgetName] = useState<string>('');
+  const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
 
   const [action, setAction] = useState('new');
-  const [widgets, setWidgets] = useState<any>([]);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+
+  const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
   
   const buildDesigner = useCallback(async () => {
     if (!designerRef.current) return;
@@ -74,7 +83,7 @@ function DesignerApp() {
         },
         plugins: getPlugins(),
       });
-      designer.current.onSaveTemplate(onSaveTemplate);
+      //designer.current.onSaveTemplate(onSaveTemplate);
       
       setIsDisabledSaveBtn(!template.schemas[0].length);
     } catch {
@@ -111,9 +120,6 @@ function DesignerApp() {
   };
 
   const onResizeWidget = () => {
-
-    console.log('***** onresize: widgetWidth: ', widgetWidth);
-
     if (designer.current) {
       const template: Template = getBlankTemplate(widgetWidth, widgetHeight);
       const newTemplate =  Object.assign(cloneDeep(designer.current.getTemplate()), {
@@ -132,19 +138,63 @@ function DesignerApp() {
     }
   };
 
-  const onSaveTemplate = (template?: Template | undefined) => {
+  const onSaveWidget = () => {
 
-    console.log('save !!!!!')
-
-    /*Y
     if (designer.current) {
+      const template: Template = cloneDeep(designer.current.getTemplate());
+      let widgets: Widget[] = [];
+
+      try {
+        const widgetsFromLocal = localStorage.getItem("widgets");
+
+        if (widgetsFromLocal) {
+          widgets = JSON.parse(widgetsFromLocal);
+          setWidgets(widgets);
+        }
+      } catch (e) {
+        // do nothing here
+      }
+
+      const id: string = selectedWidgetId || generateUUID();
+      const { widthPadding, heightPadding } = getTemplatePadding(widgetWidth, widgetHeight);
+      const schemas = template?.schemas[0].map((schema) => {
+
+        const newSchema = Object.assign(cloneDeep(schema), {
+          name: `${id}_${schema.name}`,
+          position: {
+            x: schema.position.x - widthPadding,
+            y: schema.position.y - heightPadding,
+          },
+        });
+
+        return newSchema;
+      });
+
+      const widget = {
+        id,
+        name: widgetName,
+        width: widgetWidth,
+        height: widgetHeight,
+        schemas,
+      };
+
+      const existWidgetIdx = widgets.findIndex((v) => v.id === id);
+      
+      if (existWidgetIdx !== -1) {
+        widgets[existWidgetIdx] = widget;
+      } else {
+        widgets.push(widget);
+        setSelectedWidgetId(id);
+        setAction('update');
+      }
+      
       localStorage.setItem(
-        "template",
-        JSON.stringify(template || designer.current.getTemplate())
+        "widgets",
+        JSON.stringify(widgets)
       );
-      alert("Saved!");
+
+      setWidgets(widgets);
     }
-    */
   };
 
   interface Rect {
@@ -166,10 +216,9 @@ function DesignerApp() {
       const bottomB = yB + heightB;
       
       if (xB < xA || rightB > rightA || yB < yA || bottomB > bottomA) {
-          return true;  // 矩形 B 超出矩形 A 的邊界
+        return true;
       }
-    
-      return false;  // 矩形 B 沒有超出矩形 A 的邊界
+      return false;
     }
 
     // Check if any schema exceeds the widget boundaries.
@@ -181,7 +230,7 @@ function DesignerApp() {
         y: heightPadding,
         width: widgetWidth,
         height: widgetHeight,
-      }
+      };
      
       const schemaRect = {
         x: schema.position.x,
@@ -194,14 +243,59 @@ function DesignerApp() {
     }) || false;
 
     const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;
-
     setIsDisabledSaveBtn(isDisabled);
   }, [widgetWidth, widgetHeight]);
 
-  const handleActionRadioOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setAction(event.target.value);
+  const handleWidgetSelectOnChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = event.target.value;
+    const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
+
+    if (selectedWidget) {
+        const { width, height, name, schemas } = selectedWidget;
+        const { widthPadding, heightPadding } = getTemplatePadding(width, height);
+
+        setSelectedWidgetId(id);
+        setWidgetName(name);
+        setWidgetWidth(width);
+        setWidgetHeight(height);
+
+        // Delay calling updateTemplate() to ensure that the width and height states have been updated already."
+        setTimeout(() => {
+          const newSchemas = schemas.map((schema) => {
+            schema.position.x += widthPadding;
+            schema.position.y += heightPadding;
+            return schema;
+          });
+
+          if (designer.current) {
+            const template: Template = getBlankTemplate(width, height);
+            template.schemas = [[...newSchemas]];
+            designer.current.updateTemplate(template);
+          }
+        }, 0);
+    }
   };
 
+  const handleActionRadioOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const action = event.target.value;
+
+    if (action === 'new') {
+      setSelectedWidgetId('');
+      setWidgetName('');
+      setSelectedWidgetId('');
+      setWidgetName('');
+      setWidgetWidth(DEFAULT_WIDGET_WIDTH);
+      setWidgetHeight(DEFAULT_WIDGET_HEIGHT);
+
+      if (designer.current) {
+        const template: Template = getBlankTemplate(DEFAULT_WIDGET_WIDTH, DEFAULT_WIDGET_HEIGHT);
+        designer.current.updateTemplate(template);
+      }
+    }
+
+    setSelectedWidgetId('');
+    setAction(action);
+  };
 
   useEffect(() => {
     if (designerRef.current) {
@@ -225,16 +319,12 @@ function DesignerApp() {
     content: (
       <select
         className="w-full border rounded px-2 py-1"
-        onChange={(e) => {
-          /*
-          setLang(e.target.value as Lang);
-          designer.current?.updateOptions({ lang: e.target.value as Lang });
-          */
-        }}
-        value={lang}
+        value={selectedWidgetId || ''}
+        onChange={handleWidgetSelectOnChange}
       >
+        <option value="" disabled>Please select widget...</option>
         {widgets.map((t) => (
-          <option key={t.id} value={t.name}>
+          <option key={t.id} value={t.id}>
             {t.name}
           </option>
         ))}
@@ -289,18 +379,30 @@ function DesignerApp() {
     {
       label: "",
       content: (
-        <button
-          className="px-2 py-1 border rounded hover:bg-gray-100"
-          style={{
-            backgroundColor: IsDisabledSaveBtn ? 'grey' : 'inherit',
-            color: IsDisabledSaveBtn ? 'lightgrey' : 'inherit',
-            cursor: IsDisabledSaveBtn ? 'not-allowed' : 'pointer',
-          }}
-          disabled={IsDisabledSaveBtn}
-          onClick={() => onSaveTemplate()}
-        >
-          Save Widget
-        </button>
+        <>
+          <div style={{ display: 'inline-block' }}>
+            <div style={{ float: "right", marginBottom: "10px"  }}>Id: 
+              <input type="text" readOnly value={selectedWidgetId} style={{ width: "150px", border: "1px solid black" }} />
+            </div>
+            <div>Name: 
+              <input type="text" value={widgetName} style={{ width: "150px", border: "1px solid black" }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetName(e.target.value);}}
+              />
+            </div>
+          </div>
+          <button
+            className="px-2 py-1 border rounded hover:bg-gray-100"
+            style={{
+              backgroundColor: finalIsDisabledSaveBtn ? 'grey' : 'inherit',
+              color: finalIsDisabledSaveBtn ? 'lightgrey' : 'inherit',
+              cursor: finalIsDisabledSaveBtn ? 'not-allowed' : 'pointer',
+            }}
+            disabled={finalIsDisabledSaveBtn}
+            onClick={() => onSaveWidget()}
+          >
+            Save Widget
+          </button>
+        </>
       ),
     },
  
