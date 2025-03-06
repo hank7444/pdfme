@@ -123,6 +123,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
 
   const prevSchemas = usePrevious(schemasList[pageCursor]);
 
+
   const onKeydown = (e: KeyboardEvent) => {
     if (e.shiftKey) setIsPressShiftKey(true);
   };
@@ -349,6 +350,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         continueSelect={isPressShiftKey}
         onDragStart={(e) => {
           const { inputEvent } = e;
+
           const isMoveableElement = moveable.current?.isMoveableElement(inputEvent.target);
           if ((inputEvent.type === 'touchstart' && e.isTrusted) || isMoveableElement) {
             e.stop();

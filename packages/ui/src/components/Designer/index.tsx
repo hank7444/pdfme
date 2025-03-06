@@ -304,6 +304,8 @@ const TemplateEditor = ({
             schemasList={schemasList}
             schemas={schemasList[pageCursor] ?? []}
             changeSchemas={changeSchemas}
+            commitSchemas={commitSchemas}
+            removeSchemas={removeSchemas}
             onSortEnd={onSortEnd}
             onEdit={id => {
               const editingElem = document.getElementById(id);

@@ -224,7 +224,7 @@ Check this document: https://pdfme.com/docs/custom-schemas`);
 
   if (typeof activePropPanelSchema === 'function') {
     const { schemasList: _, ...propPanelProps } = props;
-
+    
     const apps =
       activePropPanelSchema({
         ...propPanelProps,

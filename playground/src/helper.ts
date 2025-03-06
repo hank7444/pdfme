@@ -130,6 +130,16 @@ export const getPlugins = () => {
   };
 };
 
+export const getLittlePlugins = () => {
+  return {
+    Text: text,
+    Line: line,
+    Rectangle: rectangle,
+    Ellipse: ellipse,
+    WidgetGroup: plugins.widgetGroup,
+  };
+}
+
 export const translations: { label: string; value: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'zh', label: 'Chinese' },

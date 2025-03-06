@@ -13,6 +13,8 @@ export type SidebarProps = {
   onEdit: (id: string) => void;
   onEditEnd: () => void;
   changeSchemas: ChangeSchemas;
+  commitSchemas: (newSchemas: SchemaForUI[]) => void;
+  removeSchemas: (ids: string[]) => void;
   deselectSchema: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (sidebarOpen: boolean) => void;
