@@ -9,6 +9,7 @@ type Props = {
   verticalGuidelines: number[];
   keepRatio: boolean;
   rotatable: boolean;
+  resizable: boolean;
   onDrag: ({ target, left, top }: OnDrag) => void;
   onDragEnd: ({ target }: { target: HTMLElement | SVGElement }) => void;
   onDragGroupEnd: ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => void;
@@ -47,7 +48,7 @@ const _Moveable = (props: Props, ref: Ref<any>) => {
       snapCenter
       draggable
       rotatable={props.rotatable}
-      resizable
+      resizable={props.resizable}
       throttleDrag={1}
       throttleRotate={1}
       throttleResize={1}

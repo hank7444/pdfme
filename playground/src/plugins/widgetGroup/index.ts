@@ -1,109 +1,157 @@
-import { Plugin, Schema, PropPanelSchema, SchemaForUI, Widget, cloneDeep } from '@pdfme/common';
+import { Plugin, Schema, PropPanelSchema, SchemaForUI, Widget } from '@pdfme/common';
 import { Group } from 'lucide';
+import cloneDeep from 'lodash/cloneDeep';
 import { createSvgStr, uuid } from '../utils';
 import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } from './widgetData';
+import { WidgetGroupSchema } from './types';
 
-interface WidgetGroup extends Schema {}
+let timeoutId: ReturnType<typeof setTimeout>;
 
+const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
+  ui: async (arg) => { },
+  pdf: () => { },
+  propPanel: {
+    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas, groupManager }) => {
+      let widgetOptions: Option[] = [];
+      const activeSchema = _activeSchema as WidgetGroupSchema;
+      const activeSchemaId = activeSchema.id as string;
 
-export const widgetGroup: Plugin<WidgetGroup> = {
-    ui: async (arg) => {},
-    pdf: () => {},
-    propPanel: {
-      schema: ({ options, activeSchema, i18n, schemas, changeSchemas, commitSchemas, removeSchemas  }) => {
-        
-        let widgetOptions: Option[] = [];
+      const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetSection.selectSection;
 
-        // @ts-expect-error asdsad 
-        const { widgetCategory, widget: widgetId } = activeSchema.widgetSection.selectSection;
+      if (widgetCategory) {
+        widgetOptions = widgetCategoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
+        const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : null
 
-        if (widgetCategory) {
-          widgetOptions = widgetCategoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
-          const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId: null
+        changeSchemas([
+          { key: 'widgetSection.selectSection.widget', value: newWidgetId, schemaId: activeSchemaId },
+          { key: 'widgetGroupId', value: activeSchemaId, schemaId: activeSchemaId }
+        ]);
 
-          changeSchemas([{ key: 'widgetSection.selectSection.widget', value: newWidgetId, schemaId: activeSchema.id }]);
+        if (newWidgetId) {
+          const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
+          const { width, height, schemas: widgetSchemas } = widget;
 
-          if (newWidgetId) {
-            const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
+          const hasWidgetComps = schemas.some((schema: SchemaForUI) => {
+            return schema.name.indexOf(`${activeSchema.id}_${widget.name}`) !== -1
+          });
 
-            console.log('### widget: ', widget);
+          if (!hasWidgetComps) {
+            let newSchemas = cloneDeep(schemas);
 
-            const { width, height, schemas } = widget;
+            // Delete child components with different widget names
+            newSchemas = newSchemas.filter((schema: SchemaForUI) => {
+              return !schema.name.startsWith(`${activeSchema.id}_`)
+            });
 
-            changeSchemas([
-              { key: 'width', value: width, schemaId: activeSchema.id },
-              { key: 'height', value: height, schemaId: activeSchema.id }
-            ]);
+            const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchema.id);
 
+            if (widgetGroupSchema) {
+              widgetGroupSchema.width = width;
+              widgetGroupSchema.height = height;
+            }
 
-            const newWidgetSchemas = schemas.map((schema, idx) => {
+            const newWidgetSchemas: SchemaForUI[] = widgetSchemas.map((schema: Schema, idx: number) => {
               schema.id = uuid();
-              schema.name = `${activeSchema.id}_${widget.name}_comp_${idx}`;
-              return schema;
-            })
+              schema.name = `widgetGroup_${activeSchema.id}_${widget.name}_comp_${idx}`;
+              schema.widgetGroupId = activeSchema.id;
 
-            console.log('newWidgetSchemas', newWidgetSchemas);
-            
-            commitSchemas(schemas.concat(newWidgetSchemas));
+              // Convert from relative coordinates to absolute coordinates
+              const parantPos = activeSchema.position;
+              schema.position.x += parantPos.x;
+              schema.position.y += parantPos.y;
+
+              return schema;
+            });
+
+            commitSchemas(newSchemas.concat(newWidgetSchemas));
+
+            /*
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+
+            // Group widget comps
+         
+            timeoutId = setTimeout(() => {
+              const elems = Array.from(document.getElementsByClassName('pdfme-selectable') as HTMLCollectionOf<HTMLElement>);
+              const widgetGroupElems = elems.filter((elem: HTMLElement) => {
+                return elem.id === activeSchema.id || elem.title.includes(`widgetGroup_${activeSchema.id}`);
+              })
+
+              console.log('#### set widgetGroupElems: ', widgetGroupElems);
+              //groupManager.set([], elems);
+              groupManager.group(widgetGroupElems, true);
+              
+            }, 50)
+            */
           }
         }
+      }
 
-        const schema: Record<string, PropPanelSchema> = {
-          widgetSection: {
-            type: 'object',
-            properties: {
-              selectSection: {
-                //title: "title",
-                //description: "description",
-                column: 1,
-                type: 'object',
-                widget: 'card',
-                properties: {
-                  widgetCategory: {
-                    title: 'Widget Category',
-                    type: 'string',
-                    widget: 'select',
-                    //required: true,
-                    default: '',
-                    props: { 
-                      options: widgetCategoryOptions,
-                      placeholder: 'Please select category...',
-                    },
-                  },
-                  widget: {
-                    title: 'Widget',
-                    type: 'string',
-                    widget: 'select',
-                    //required: true,
-                    default: '',
-                    props: { 
-                      options: widgetOptions,
-                      placeholder: 'Please select widget...',
-                    },
+      const schema: Record<string, PropPanelSchema> = {
+        type: {
+          title: 'Type',
+          widget: 'select',
+          required: true,
+          disabled: true,
+        },
+        widgetSection: {
+          type: 'object',
+          properties: {
+            selectSection: {
+              //title: "title",
+              //description: "description",
+              column: 1,
+              type: 'object',
+              widget: 'card',
+              properties: {
+                widgetCategory: {
+                  title: 'Widget Category',
+                  type: 'string',
+                  widget: 'select',
+                  //required: true,
+                  default: '',
+                  props: {
+                    options: widgetCategoryOptions,
+                    placeholder: 'Please select category...',
                   },
                 },
-              }
+                widget: {
+                  title: 'Widget',
+                  type: 'string',
+                  widget: 'select',
+                  //required: true,
+                  default: '',
+                  props: {
+                    options: widgetOptions,
+                    placeholder: 'Please select widget...',
+                  },
+                },
+              },
             }
           }
-        };
-
-        return schema;
-      },
-      defaultSchema: {
-        name: '',
-        type: 'widgetGroup',
-        content: '',
-        position: { x: 0, y: 0 },
-        width: 62.5,
-        height: 37.5,
-        widgetSection: {
-          selectSection: {
-            widgetCategory: null,
-            widget: null,
-          }
         }
+      };
+
+      return schema;
+    },
+    defaultSchema: {
+      name: '',
+      type: 'widgetGroup',
+      content: '',
+      position: { x: 0, y: 0 },
+      width: 62.5,
+      height: 37.5,
+      widgetGroupId: '',
+      widgetSection: {
+        selectSection: {
+          widgetCategory: undefined,
+          widget: undefined,
+        },
       },
     },
-    icon: createSvgStr(Group),
-  };
-  
+  },
+  icon: createSvgStr(Group),
+};
+
+export default widgetGroupSchema;

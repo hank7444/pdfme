@@ -1,5 +1,5 @@
 import { signature } from './signature';
-import { widgetGroup } from './widgetGroup';
+import widgetGroup from './widgetGroup';
 
 const plugins = {
   signature,

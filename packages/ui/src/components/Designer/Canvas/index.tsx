@@ -91,8 +91,8 @@ interface Props {
   changeSchemas: ChangeSchemas;
   removeSchemas: (ids: string[]) => void;
   paperRefs: MutableRefObject<HTMLDivElement[]>;
+  selectoRef: MutableRefObject<Selecto>;
   sidebarOpen: boolean;
-}
 
 const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   const {
@@ -110,7 +110,9 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     removeSchemas,
     onChangeHoveringSchemaId,
     paperRefs,
+    selectoRef,
     sidebarOpen,
+    groupManager,
   } = props;
   const { token } = theme.useToken();
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -320,7 +322,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     setEditing(true);
   };
 
-  const rotatable = useMemo(() => {
+  const [rotatable, resizable] = useMemo(() => {
     const selectedSchemas = (schemasList[pageCursor] || []).filter((s) =>
       activeElements.map((ae) => ae.id).includes(s.id)
     );
@@ -330,10 +332,18 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
       (plugin) => plugin?.propPanel.defaultSchema
     );
 
-    return uniqueSchemaTypes.every(
+    const hasWidgetGroupComp = selectedSchemas.some((schema: SchemaForUI) => {
+      return schema.type === 'widgetGroup' || schema.name.includes('widgetGroup_');
+    });
+    
+    const rotatable = uniqueSchemaTypes.every(
       (type) => defaultSchemas.find((ds) => ds.type === type)?.rotate !== undefined
-    );
+    ) && !hasWidgetGroupComp;
+
+    return [rotatable, !hasWidgetGroupComp];
   }, [activeElements, pageCursor, schemasList, pluginsRegistry]);
+
+
 
   return (
     <div
@@ -346,6 +356,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
       ref={ref}
     >
       <Selecto
+        selectoRef={selectoRef}
         container={paperRefs.current[pageCursor]}
         continueSelect={isPressShiftKey}
         onDragStart={(e) => {
@@ -363,15 +374,40 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             removeSchemas(activeElements.map((ae) => ae.id));
           }
         }}
-        onSelect={({ added, removed, selected, inputEvent }) => {
+        onSelect={({ added, removed, selected, inputEvent, isDragStartEnd }) => {
           const isClick = inputEvent.type === 'mousedown';
           let newActiveElements: HTMLElement[] = isClick ? (selected as HTMLElement[]) : [];
+
+          
           if (!isClick && added.length > 0) {
             newActiveElements = activeElements.concat(added as HTMLElement[]);
           }
           if (!isClick && removed.length > 0) {
             newActiveElements = activeElements.filter((ae) => !removed.includes(ae));
           }
+          
+          // Get all unique widgetGroup Ids
+          const widgetGroupIds: string[] = [
+            ...new Set(
+              newActiveElements
+                .map(elem => elem.getAttribute('data-widgetGroup-id'))
+                .filter(id => id !== undefined && id !== null)
+            )
+          ];
+
+          // Get all elements that contain these widgetGroup Ids.
+          const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+            .filter((elem: HTMLElement) => widgetGroupIds.includes(elem.getAttribute('data-widgetGroup-id') || ''));
+
+
+          newActiveElements = [
+            ...new Map([
+              ...newActiveElements,
+              ...widgetGroupElements
+            ].map((item) => [item.id, item]))
+            .values()
+          ];
+
           onEdit(newActiveElements);
 
           if (newActiveElements != activeElements) {
@@ -429,6 +465,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
                   horizontalGuidelines={getGuideLines(horizontalGuides.current, index)}
                   verticalGuidelines={getGuideLines(verticalGuides.current, index)}
                   keepRatio={isPressShiftKey}
+                  resizable={resizable}
                   rotatable={rotatable}
                   onDrag={onDrag}
                   onDragEnd={onDragEnd}

@@ -13,8 +13,12 @@ import { InternalNamePath, ValidateErrorEntity } from "rc-field-form/es/interfac
 
 const { Text } = Typography;
 
+
+
 type DetailViewProps = Pick<SidebarProps,
-  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'changeSchemas' | 'activeElements' | 'deselectSchema'
+  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'groupManager' |
+  'changeSchemas' | 'commitSchemas' | 'removeSchemas' |
+  'activeElements' | 'deselectSchema'
 > & {
   activeSchema: SchemaForUI;
 };
@@ -224,7 +228,7 @@ Check this document: https://pdfme.com/docs/custom-schemas`);
 
   if (typeof activePropPanelSchema === 'function') {
     const { schemasList: _, ...propPanelProps } = props;
-    
+
     const apps =
       activePropPanelSchema({
         ...propPanelProps,

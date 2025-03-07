@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import {
   cloneDeep,
   ZOOM,
@@ -12,6 +12,7 @@ import {
   px2mm,
 } from '@pdfme/common';
 import { DndContext } from '@dnd-kit/core';
+import Selecto, { ElementType } from 'react-selecto';
 import RightSidebar from './RightSidebar/index';
 import LeftSidebar from './LeftSidebar';
 import Canvas from './Canvas/index';
@@ -59,6 +60,7 @@ const TemplateEditor = ({
   const future = useRef<SchemaForUI[][]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const paperRefs = useRef<HTMLDivElement[]>([]);
+  const selectoRef = useRef<Selecto>(null);
 
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -105,6 +107,19 @@ const TemplateEditor = ({
       _schemasList[pageCursor] = newSchemas;
       setSchemasList(_schemasList);
       onChangeTemplate(schemasList2template(_schemasList, template.basePdf));
+
+      /*
+      setTimeout(() => {
+        if (selectoRef.current) {
+          const elements = selectoRef.current!.getSelectableElements();
+          const existGroups = getGroups(groupManager, elements);
+
+          console.log('#### selectable elems: ', elements);
+          
+          groupManager.set(existGroups, elements);
+        }
+      }, 50);
+      */
     },
     [template, schemasList, pageCursor, onChangeTemplate]
   );
@@ -248,6 +263,7 @@ const TemplateEditor = ({
     ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
     : {};
 
+
   return (
     <Root size={size} scale={scale}>
       <DndContext
@@ -306,6 +322,7 @@ const TemplateEditor = ({
             changeSchemas={changeSchemas}
             commitSchemas={commitSchemas}
             removeSchemas={removeSchemas}
+            groupManager={groupManager}
             onSortEnd={onSortEnd}
             onEdit={id => {
               const editingElem = document.getElementById(id);
@@ -320,6 +337,7 @@ const TemplateEditor = ({
           <Canvas
             ref={canvasRef}
             paperRefs={paperRefs}
+            selectoRef={selectoRef}
             basePdf={template.basePdf}
             hoveringSchemaId={hoveringSchemaId}
             onChangeHoveringSchemaId={onChangeHoveringSchemaId}
@@ -333,6 +351,7 @@ const TemplateEditor = ({
             schemasList={schemasList}
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
+            groupManager={groupManager}
             sidebarOpen={sidebarOpen}
             onEdit={onEdit}
           />

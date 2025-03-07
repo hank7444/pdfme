@@ -1,3 +1,4 @@
+
 import {
   PDFME_VERSION,
   MM_TO_PT_RATIO,
@@ -10,6 +11,8 @@ import {
 import type {
   ChangeSchemaItem,
   ChangeSchemas,
+  CommitSchemas,
+  RemoveSchemas,
   SchemaPageArray,
   PropPanel,
   PropPanelSchema,
@@ -118,6 +121,8 @@ export type {
   DesignerProps,
   ChangeSchemaItem,
   ChangeSchemas,
+  CommitSchemas,
+  RemoveSchemas,
   SchemaPageArray,
   PropPanel,
   PropPanelSchema,

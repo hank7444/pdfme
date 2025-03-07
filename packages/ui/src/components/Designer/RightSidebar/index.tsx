@@ -8,7 +8,6 @@ import DetailView from './DetailView/index';
 
 const Sidebar = (props: SidebarProps) => {
   const { sidebarOpen, setSidebarOpen, activeElements, schemas } = props;
-
   const { token } = theme.useToken();
   const getActiveSchemas = () =>
     schemas.filter((s) => activeElements.map((ae) => ae.id).includes(s.id));

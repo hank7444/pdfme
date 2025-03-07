@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { MutableRefObject, useEffect } from 'react';
 import Selecto, { OnDragStart as _OnDragStart, OnSelect as _OnSelect } from 'react-selecto';
 import { SELECTABLE_CLASSNAME } from '../../../constants';
 import { theme } from 'antd';
 
 type Props = {
+  selectoRef: MutableRefObject<Selecto>;
   container: HTMLElement | null;
   continueSelect: boolean;
   onDragStart: (e: _OnDragStart) => void;
@@ -25,6 +26,7 @@ const _Selecto = (props: Props) => {
 
   return (
     <Selecto
+      ref={props.selectoRef}
       className={className}
       selectFromInside={false}
       selectByClick

@@ -1,4 +1,4 @@
-import type { SchemaForUI, Size, ChangeSchemas } from '@pdfme/common';
+import type { SchemaForUI, Size, ChangeSchemas, CommitSchemas, RemoveSchemas } from '@pdfme/common';
 
 export type SidebarProps = {
   height: number;
@@ -13,8 +13,8 @@ export type SidebarProps = {
   onEdit: (id: string) => void;
   onEditEnd: () => void;
   changeSchemas: ChangeSchemas;
-  commitSchemas: (newSchemas: SchemaForUI[]) => void;
-  removeSchemas: (ids: string[]) => void;
+  commitSchemas: CommitSchemas;
+  removeSchemas: RemoveSchemas;
   deselectSchema: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (sidebarOpen: boolean) => void;

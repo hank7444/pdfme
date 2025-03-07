@@ -45,38 +45,42 @@ const Wrapper = ({
   onChangeHoveringSchemaId,
   schema,
   selectable = true
-}: RendererProps & { children: ReactNode }) => (
-  <div
-    title={schema.name}
-    onMouseEnter={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(schema.id)}
-    onMouseLeave={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(null)}
-    className={selectable ? SELECTABLE_CLASSNAME : ''}
-    id={schema.id}
-    style={{
-      position: 'absolute',
-      cursor: schema.readOnly ? 'initial' : 'pointer',
-      height: schema.height * ZOOM,
-      width: schema.width * ZOOM,
-      top: schema.position.y * ZOOM,
-      left: schema.position.x * ZOOM,
-      transform: `rotate(${schema.rotate ?? 0}deg)`,
-      opacity: schema.opacity ?? 1,
-      outline,
-    }}
-  >
-    {schema.required &&
-      <span style={{
-        color: 'red',
+}: RendererProps & { children: ReactNode }) => {
+
+  return (
+    <div
+      title={schema.name}
+      onMouseEnter={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(schema.id)}
+      onMouseLeave={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(null)}
+      className={selectable ? SELECTABLE_CLASSNAME : ''}
+      id={schema.id}
+      {...(schema.widgetGroupId && { 'data-widgetGroup-id': schema.widgetGroupId })}
+      style={{
         position: 'absolute',
-        top: -12,
-        left: -12,
-        fontSize: 18,
-        fontWeight: 700,
-      }}>*</span>
-    }
-    {children}
-  </div>
-);
+        cursor: schema.readOnly ? 'initial' : 'pointer',
+        height: schema.height * ZOOM,
+        width: schema.width * ZOOM,
+        top: schema.position.y * ZOOM,
+        left: schema.position.x * ZOOM,
+        transform: `rotate(${schema.rotate ?? 0}deg)`,
+        opacity: schema.opacity ?? 1,
+        outline,
+      }}
+    >
+      {schema.required &&
+        <span style={{
+          color: 'red',
+          position: 'absolute',
+          top: -12,
+          left: -12,
+          fontSize: 18,
+          fontWeight: 700,
+        }}>*</span>
+      }
+      {children}
+    </div>
+  );
+};
 
 const Renderer = (props: RendererProps) => {
   const pluginsRegistry = useContext(PluginsRegistry);
