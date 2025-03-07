@@ -475,3 +475,24 @@ export const changeSchemas = (args: {
   }, cloneDeep(schemas));
   commitSchemas(newSchemas);
 };
+
+
+export const getWidgetGroupElemType = (schema: SchemaForUI): string => {
+  const isWidgetElem = schema.hasOwnProperty('widgetGroupId');
+
+  if (!isWidgetElem) {
+    return 'default';
+  }
+  return schema.widgetGroupId == schema.id ? 'parent' : 'child';
+};
+
+export const getWidgetGroupHTMLElemType = (elem: HTMLElement): { isWidget: boolean, widgetGroupId: string, widgetGroupType: string } => {
+  const isWidgetElem = elem.hasAttribute('data-widgetgroup-id');
+  const id = elem.getAttribute('data-widgetgroup-id') || '';
+
+  return {
+    isWidget: isWidgetElem,
+    widgetGroupId: id,
+    widgetGroupType: isWidgetElem ? elem.getAttribute('data-widgetgroup-id') == elem.id ? 'parent' : 'child' : '',
+  };
+};

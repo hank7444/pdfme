@@ -107,19 +107,6 @@ const TemplateEditor = ({
       _schemasList[pageCursor] = newSchemas;
       setSchemasList(_schemasList);
       onChangeTemplate(schemasList2template(_schemasList, template.basePdf));
-
-      /*
-      setTimeout(() => {
-        if (selectoRef.current) {
-          const elements = selectoRef.current!.getSelectableElements();
-          const existGroups = getGroups(groupManager, elements);
-
-          console.log('#### selectable elems: ', elements);
-          
-          groupManager.set(existGroups, elements);
-        }
-      }, 50);
-      */
     },
     [template, schemasList, pageCursor, onChangeTemplate]
   );
@@ -322,11 +309,23 @@ const TemplateEditor = ({
             changeSchemas={changeSchemas}
             commitSchemas={commitSchemas}
             removeSchemas={removeSchemas}
-            groupManager={groupManager}
             onSortEnd={onSortEnd}
-            onEdit={id => {
+            onEdit={(id: string) => {
               const editingElem = document.getElementById(id);
               editingElem && onEdit([editingElem]);
+              
+              /*
+              if (editingElem) {
+                const widgetGroupId = editingElem?.getAttribute('data-widgetgroup-id') || '';
+                if (widgetGroupId === editingElem.id) {
+                  const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+                    .filter((elem: HTMLElement) => elem.getAttribute('data-widgetgroup-id') === widgetGroupId);
+                  onEdit(widgetGroupElements);
+                } else {
+                  onEdit([editingElem]);
+                }
+              }
+              */
             }}
             onEditEnd={onEditEnd}
             deselectSchema={onEditEnd}
@@ -351,7 +350,6 @@ const TemplateEditor = ({
             schemasList={schemasList}
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
-            groupManager={groupManager}
             sidebarOpen={sidebarOpen}
             onEdit={onEdit}
           />

@@ -89,6 +89,7 @@ const ListView = (
             onEdit={onEdit}
           />
         )}
+        {/*
         <div style={{ paddingTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
           {isBulkUpdateFieldNamesMode ? (
             <>
@@ -106,6 +107,7 @@ const ListView = (
             </Button>
           )}
         </div>
+        */}
       </div>
     </div>
   );

@@ -5,13 +5,12 @@ import { createSvgStr, uuid } from '../utils';
 import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } from './widgetData';
 import { WidgetGroupSchema } from './types';
 
-let timeoutId: ReturnType<typeof setTimeout>;
 
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   ui: async (arg) => { },
   pdf: () => { },
   propPanel: {
-    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas, groupManager }) => {
+    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas }) => {
       let widgetOptions: Option[] = [];
       const activeSchema = _activeSchema as WidgetGroupSchema;
       const activeSchemaId = activeSchema.id as string;
@@ -31,16 +30,15 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
           const { width, height, schemas: widgetSchemas } = widget;
 
-          const hasWidgetComps = schemas.some((schema: SchemaForUI) => {
-            return schema.name.indexOf(`${activeSchema.id}_${widget.name}`) !== -1
+          const widgetGroupChildComp = schemas.find((schema: SchemaForUI) => {
+            return schema.widgetGroupId === activeSchemaId && !!schema.widgetGroupName;
           });
-
-          if (!hasWidgetComps) {
+                    
+          if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupName !== widget.name) {
             let newSchemas = cloneDeep(schemas);
 
-            // Delete child components with different widget names
             newSchemas = newSchemas.filter((schema: SchemaForUI) => {
-              return !schema.name.startsWith(`${activeSchema.id}_`)
+              return !(schema.widgetGroupId === activeSchemaId && schema.id !== activeSchemaId);
             });
 
             const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchema.id);
@@ -54,6 +52,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               schema.id = uuid();
               schema.name = `widgetGroup_${activeSchema.id}_${widget.name}_comp_${idx}`;
               schema.widgetGroupId = activeSchema.id;
+              schema.widgetGroupName = widget.name;
 
               // Convert from relative coordinates to absolute coordinates
               const parantPos = activeSchema.position;
@@ -64,26 +63,6 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
             });
 
             commitSchemas(newSchemas.concat(newWidgetSchemas));
-
-            /*
-            if (timeoutId) {
-              clearTimeout(timeoutId);
-            }
-
-            // Group widget comps
-         
-            timeoutId = setTimeout(() => {
-              const elems = Array.from(document.getElementsByClassName('pdfme-selectable') as HTMLCollectionOf<HTMLElement>);
-              const widgetGroupElems = elems.filter((elem: HTMLElement) => {
-                return elem.id === activeSchema.id || elem.title.includes(`widgetGroup_${activeSchema.id}`);
-              })
-
-              console.log('#### set widgetGroupElems: ', widgetGroupElems);
-              //groupManager.set([], elems);
-              groupManager.group(widgetGroupElems, true);
-              
-            }, 50)
-            */
           }
         }
       }
@@ -138,6 +117,8 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
     defaultSchema: {
       name: '',
       type: 'widgetGroup',
+      readOnly: true,
+      required: false,
       content: '',
       position: { x: 0, y: 0 },
       width: 62.5,
@@ -148,6 +129,10 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           widgetCategory: undefined,
           widget: undefined,
         },
+      },
+      relPosition: {
+        x: 0,
+        y: 0,
       },
     },
   },

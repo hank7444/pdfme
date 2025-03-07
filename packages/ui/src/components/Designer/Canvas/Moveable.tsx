@@ -1,5 +1,5 @@
 import React, { useEffect, forwardRef, Ref } from 'react';
-import Moveable, { OnDrag, OnResize, OnRotate, OnRotateEnd, OnClick } from 'react-moveable';
+import Moveable, { OnDrag, OnResize, OnRotate, OnRotateEnd, OnClick, OnClickGroup } from 'react-moveable';
 import { theme } from 'antd';
 
 type Props = {
@@ -20,6 +20,7 @@ type Props = {
   onResizeEnd: ({ target }: { target: HTMLElement | SVGElement }) => void;
   onResizeGroupEnd: ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => void;
   onClick: (e: OnClick) => void;
+  onClickGroup: (e: OnClickGroup) => void;
 };
 
 const className = 'pdfme-moveable';
@@ -77,6 +78,7 @@ const _Moveable = (props: Props, ref: Ref<any>) => {
       onResizeEnd={props.onResizeEnd}
       onResizeGroupEnd={props.onResizeGroupEnd}
       onClick={props.onClick}
+      onClickGroup={props.onClickGroup}
     />
   );
 };

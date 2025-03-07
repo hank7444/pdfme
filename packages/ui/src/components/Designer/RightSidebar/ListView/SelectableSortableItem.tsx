@@ -65,6 +65,9 @@ const SelectableSortableItem = ({
     ? { background: token.colorPrimary, opacity: isSorting || isDragging ? 0.5 : 1 }
     : ({} as React.CSSProperties);
 
+
+  const isChild = !!schema.widgetGroupId && schema.widgetGroupId !== schema.id;
+
   return (
     <Item
       ref={setNodeRef}
@@ -78,6 +81,7 @@ const SelectableSortableItem = ({
       required={schema.required}
       readOnly={schema.readOnly}
       style={{ ...selectedStyle, ...style }}
+      isChild={isChild}
       dragging={isDragging}
       sorting={isSorting}
       transition={transition}

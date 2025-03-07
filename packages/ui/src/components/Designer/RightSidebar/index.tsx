@@ -1,5 +1,6 @@
 import React from 'react';
 import { theme, Button } from 'antd';
+import { SchemaForUI } from '@pdfme/common';
 import type { SidebarProps } from '../../../types';
 import { RIGHT_SIDEBAR_WIDTH } from '../../../constants';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -9,11 +10,27 @@ import DetailView from './DetailView/index';
 const Sidebar = (props: SidebarProps) => {
   const { sidebarOpen, setSidebarOpen, activeElements, schemas } = props;
   const { token } = theme.useToken();
-  const getActiveSchemas = () =>
-    schemas.filter((s) => activeElements.map((ae) => ae.id).includes(s.id));
+  const getActiveSchemas = () => {
+    return schemas.filter((s: SchemaForUI) => 
+      activeElements.map((ae: HTMLElement) => ae.id).includes(s.id));
+  }
   const getLastActiveSchema = () => {
     const activeSchemas = getActiveSchemas();
-    return activeSchemas[activeSchemas.length - 1];
+    let activeSchema: SchemaForUI = null;
+
+    activeSchemas.forEach((s: SchemaForUI) => {
+      if (!activeSchema) {
+        if (s.widgetGroupId === s.id) {
+          activeSchema = s;
+        }
+      }
+    })
+
+    if (!activeSchema) {
+      activeSchema = activeSchemas[activeSchemas.length - 1];
+    }
+
+    return activeSchema;
   };
 
   const iconProps = { strokeWidth: 1.5, size: 20 };

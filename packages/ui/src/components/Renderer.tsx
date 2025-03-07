@@ -54,7 +54,9 @@ const Wrapper = ({
       onMouseLeave={() => onChangeHoveringSchemaId && onChangeHoveringSchemaId(null)}
       className={selectable ? SELECTABLE_CLASSNAME : ''}
       id={schema.id}
-      {...(schema.widgetGroupId && { 'data-widgetGroup-id': schema.widgetGroupId })}
+      {...(schema.widgetGroupId && { 'data-widgetgroup-id': schema.widgetGroupId })}
+      {...(schema.relPosition && { 'data-widgetgroup-pos-x': schema.relPosition.x })}
+      {...(schema.relPosition && { 'data-widgetgroup-pos-y': schema.relPosition.y })}
       style={{
         position: 'absolute',
         cursor: schema.readOnly ? 'initial' : 'pointer',

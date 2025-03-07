@@ -18,6 +18,7 @@ interface Props {
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  isChild: boolean;
   dragging?: boolean;
   sorting?: boolean;
   transition?: string;
@@ -40,6 +41,7 @@ const Item = React.memo(
         onClick,
         onMouseEnter,
         onMouseLeave,
+        isChild,
         dragging,
         fadeIn,
         listeners,
@@ -72,6 +74,7 @@ const Item = React.memo(
             marginTop: 10,
             transition,
             transform: `translate(${x}px, ${y}px) scale(${scaleX}, ${scaleY})`,
+            paddingLeft: isChild ? 15: 0,
           }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -88,6 +91,7 @@ const Item = React.memo(
             {...props}
             onClick={() => onClick && onClick()}
           >
+            {/*
             <Button
               {...listeners}
               style={{
@@ -100,6 +104,7 @@ const Item = React.memo(
               }}
               icon={<GripVertical size={15} style={{ cursor: 'grab' }} />}
             />
+            */}
             {icon}
             <Text
               style={{

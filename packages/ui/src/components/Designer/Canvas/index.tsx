@@ -10,13 +10,13 @@ import React, {
   useCallback,
 } from 'react';
 import { theme, Button } from 'antd';
-import { OnDrag, OnResize, OnClick, OnRotate } from 'react-moveable';
+import { OnDrag, OnResize, OnClick, onClickGroup, OnRotate } from 'react-moveable';
 import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, replacePlaceholders } from '@pdfme/common';
 import { PluginsRegistry } from '../../../contexts';
 import { X } from 'lucide-react';
 import { RULER_HEIGHT, RIGHT_SIDEBAR_WIDTH } from '../../../constants';
 import { usePrevious } from '../../../hooks';
-import { uuid, round, flatten } from '../../../helper';
+import { uuid, round, flatten, getWidgetGroupHTMLElemType } from '../../../helper';
 import Paper from '../../Paper';
 import Renderer from '../../Renderer';
 import Selecto from './Selecto';
@@ -93,6 +93,7 @@ interface Props {
   paperRefs: MutableRefObject<HTMLDivElement[]>;
   selectoRef: MutableRefObject<Selecto>;
   sidebarOpen: boolean;
+}
 
 const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   const {
@@ -112,7 +113,6 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     paperRefs,
     selectoRef,
     sidebarOpen,
-    groupManager,
   } = props;
   const { token } = theme.useToken();
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -206,10 +206,53 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   };
 
   const onDragEnds = ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => {
+
+    // I don't know why Div DOM Elment don't move.
+    /*
+    const widgetParantsPos = targets.reduce((accu, target) => {
+      const { style: { top, left }, id } = target;
+      const { widgetGroupType } = getWidgetGroupHTMLElemType(target)
+
+      if (widgetGroupType === 'parent' && !accu[id]) {
+        accu[id] = {
+          top: fmt4Num(top),
+          left: fmt4Num(left),
+        };
+      }
+      return accu;
+    }, {} as { [key: string]: { top: number, left: number } });
+
+    const arg = targets.map((target) => {
+      const { widgetGroupId, widgetGroupType } = getWidgetGroupHTMLElemType(target);
+      const { style: { top: tarTop, left: tarLeft }, id } = target;
+
+      let top = fmt4Num(tarTop);
+      let left = fmt4Num(tarLeft);
+
+      // If targets is child comps of a groupWidget, it should keep the relative coordinates with it parant comp
+      if (widgetGroupType === 'child' && !!widgetParantsPos[widgetGroupId]) {
+        let top = Number(target.getAttribute('data-widgetgroup-pos-y')!) || 0;
+        let left = Number(target.getAttribute('data-widgetgroup-pos-x')!) || 0;
+
+      
+
+        const { top: parantTop, left: parantLeft } = widgetParantsPos[widgetGroupId]; 
+        top += parantTop;
+        left += parantLeft;
+      }
+
+      return [
+        { key: 'position.y', value: fmt(`${top}px`), schemaId: id },
+        { key: 'position.x', value: fmt(`${left}px`), schemaId: id },
+      ];
+    });
+    */
+
     const arg = targets.map(({ style: { top, left }, id }) => [
       { key: 'position.y', value: fmt(top), schemaId: id },
       { key: 'position.x', value: fmt(left), schemaId: id },
     ]);
+
     changeSchemas(flatten(arg));
   };
 
@@ -322,6 +365,17 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     setEditing(true);
   };
 
+  const onGroupClickMoveable = (e: onClickGroup) => {
+    /*
+    console.log('#### onGroupClickMoveable!!!!', e);
+    e.inputEvent.stopPropagation();
+    setEditing(true);
+    */
+
+    e.inputEvent.stopPropagation();
+  };
+
+
   const [rotatable, resizable] = useMemo(() => {
     const selectedSchemas = (schemasList[pageCursor] || []).filter((s) =>
       activeElements.map((ae) => ae.id).includes(s.id)
@@ -343,7 +397,10 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     return [rotatable, !hasWidgetGroupComp];
   }, [activeElements, pageCursor, schemasList, pluginsRegistry]);
 
-
+  const isSelectedSingleWidgetGroupElem = 
+    activeElements.length === 1 && 
+    !!activeElements[0].getAttribute('data-widgetgroup-id') &&
+    activeElements[0].getAttribute('data-widgetgroup-id') !== activeElements[0].id;
 
   return (
     <div
@@ -378,35 +435,68 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           const isClick = inputEvent.type === 'mousedown';
           let newActiveElements: HTMLElement[] = isClick ? (selected as HTMLElement[]) : [];
 
-          
           if (!isClick && added.length > 0) {
             newActiveElements = activeElements.concat(added as HTMLElement[]);
           }
           if (!isClick && removed.length > 0) {
             newActiveElements = activeElements.filter((ae) => !removed.includes(ae));
           }
+
+          
+          /* TBD
+          if (newActiveElements.length === 1 && getWidgetGroupHTMLElemType(newActiveElements[0]) === 'parent') {
+            
+            // Get all unique widgetGroup Ids
+            const widgetGroupIds: string[] = [
+              ...new Set(
+                newActiveElements
+                  .map(elem => elem.getAttribute('data-widgetgroup-id'))
+                  .filter(id => id !== undefined && id !== null)
+              )
+            ];
+
+            // Get all elements that contain these widgetGroup Ids.
+            const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+              .filter((elem: HTMLElement) => widgetGroupIds.includes(elem.getAttribute('data-widgetgroup-id') || ''));
+
+
+            newActiveElements = [
+              ...new Map([
+                ...newActiveElements,
+                ...widgetGroupElements
+              ].map((item) => [item.id, item]))
+              .values()
+            ];
+          }
+          */
+
+          // select all group items
           
           // Get all unique widgetGroup Ids
           const widgetGroupIds: string[] = [
             ...new Set(
               newActiveElements
-                .map(elem => elem.getAttribute('data-widgetGroup-id'))
-                .filter(id => id !== undefined && id !== null)
+                .map(elem => getWidgetGroupHTMLElemType(elem).widgetGroupId)
+                .filter(id => !!id)
             )
           ];
 
-          // Get all elements that contain these widgetGroup Ids.
-          const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
-            .filter((elem: HTMLElement) => widgetGroupIds.includes(elem.getAttribute('data-widgetGroup-id') || ''));
+          if (widgetGroupIds.length) {
+            // Get all elements that contain these widgetGroup Ids.
+            const widgetGroupElements: HTMLElement[] = 
+              selectoRef.current!.getSelectableElements()
+                .filter((elem: HTMLElement) => widgetGroupIds.includes(getWidgetGroupHTMLElemType(elem).widgetGroupId) || '');
 
+            console.log('widgetGroupElements', widgetGroupElements);
 
-          newActiveElements = [
-            ...new Map([
-              ...newActiveElements,
-              ...widgetGroupElements
-            ].map((item) => [item.id, item]))
-            .values()
-          ];
+            newActiveElements = [
+              ...new Map([
+                ...newActiveElements,
+                ...widgetGroupElements
+              ].map((item) => [item.id, item]))
+              .values()
+            ];
+          }
 
           onEdit(newActiveElements);
 
@@ -429,7 +519,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         hasRulers={true}
         renderPaper={({ index, paperSize }) => (
           <>
-            {!editing && activeElements.length > 0 && pageCursor === index && (
+            {!editing && activeElements.length > 0 && pageCursor === index && !isSelectedSingleWidgetGroupElem && (
               <DeleteButton activeElements={activeElements} />
             )}
             <Padding basePdf={basePdf} />
@@ -477,6 +567,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
                   onResizeEnd={onResizeEnd}
                   onResizeGroupEnd={onResizeEnds}
                   onClick={onClickMoveable}
+                  onClickGroup={onGroupClickMoveable}
                 />
               )
             )}

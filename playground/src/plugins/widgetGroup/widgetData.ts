@@ -8,6 +8,24 @@ const widgets: Widget[] = [
     "height": 100,
     "schemas": [
       {
+        "name": "31950edb-7494-4b07-9c52-922581861de3_border",
+        "type": "rectangle",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 100,
+        "height": 100,
+        "rotate": 0,
+        "opacity": 1,
+        "borderWidth": 1,
+        "borderColor": "#000000",
+        "color": "",
+        "readOnly": true,
+        "required": false,
+        "content": ""
+      },
+      {
         "name": "31950edb-7494-4b07-9c52-922581861de3_field1",
         "type": "text",
         "content": "Type Something...",
@@ -127,24 +145,6 @@ const widgets: Widget[] = [
         "required": false,
         "content": ""
       },
-      {
-        "name": "31950edb-7494-4b07-9c52-922581861de3_border",
-        "type": "rectangle",
-        "position": {
-          "x": 0,
-          "y": 0
-        },
-        "width": 100,
-        "height": 100,
-        "rotate": 0,
-        "opacity": 1,
-        "borderWidth": 1,
-        "borderColor": "#000000",
-        "color": "",
-        "readOnly": true,
-        "required": false,
-        "content": ""
-      }
     ]
   },
   {
