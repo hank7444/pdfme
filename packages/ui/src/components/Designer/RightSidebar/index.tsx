@@ -11,14 +11,14 @@ const Sidebar = (props: SidebarProps) => {
   const { sidebarOpen, setSidebarOpen, activeElements, schemas, selectoRef } = props;
   const { token } = theme.useToken();
   const getActiveSchemas = () => {
-    return schemas.filter((s: SchemaForUI) => 
-      activeElements.map((ae: HTMLElement) => ae.id).includes(s.id));
+    return activeElements
+      .map((ae: HTMLElement) => ae.id) 
+      .map((id: string) => schemas.find((s: SchemaForUI) => s.id === id))
+      .filter((s: SchemaForUI | undefined) => s !== undefined);
   }
   const getLastActiveSchema = () => {
     const activeSchemas: SchemaForUI[] = getActiveSchemas();
     let activeSchema: SchemaForUI = null;
-
-    console.log('@@@@@ activeSchemas: ', activeSchemas);
 
     if (activeSchemas.length && !activeSchemas[0].widgetGroupType) {
       return activeSchemas[0];

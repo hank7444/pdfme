@@ -439,13 +439,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           const isClick = inputEvent.type === 'mousedown';
           let newActiveElements: HTMLElement[] = isClick ? (selected as HTMLElement[]) : [];
 
-          console.log('### onselect activeElements: ', activeElements);
-          console.log('### onselect added: ', added);
-
           if (!isClick && added.length > 0) {
-
-
-
             newActiveElements = activeElements.concat(added as HTMLElement[]);
           }
           if (!isClick && removed.length > 0) {
@@ -497,13 +491,35 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
               selectoRef.current!.getSelectableElements()
                 .filter((elem: HTMLElement) => widgetGroupIds.includes(getWidgetGroupHTMLElemType(elem).widgetGroupId) || '');
 
-            newActiveElements = [
-              ...new Map([
-                ...newActiveElements,
-                ...widgetGroupElements
-              ].map((item) => [item.id, item]))
-              .values()
-            ];
+            /*
+              Find the position of the first element in newActiveElements that matches the first widgetGroupId from widgetGroupIds.
+              If a match is found, merge the widgetGroupElements into newActiveElements at that position. 
+              Ensure no duplicates are included by using a Set to track seen elements, while preserving the original order of newActiveElements.
+            */
+            const insertIndex = newActiveElements.findIndex((elem) => 
+              getWidgetGroupHTMLElemType(elem).widgetGroupId === widgetGroupIds[0]);
+
+            if (insertIndex !== -1) {
+              newActiveElements = [
+                ...newActiveElements.slice(0, insertIndex + 1),
+                ...widgetGroupElements,
+                ...newActiveElements.slice(insertIndex + 1),
+              ];
+            }
+            
+            /*
+              Iterate through newActiveElements and build a new array containing only unique items based on their ID.
+              A Set is used to track seen IDs, ensuring duplicates are excluded while preserving the original order.
+            */
+            const seen = new Set();
+            newActiveElements = newActiveElements.filter(item => {
+              const id = item.id;
+              if (!seen.has(id)) {
+                seen.add(id);
+                return true; 
+              }
+              return false; 
+            });
           }
 
           onEdit(newActiveElements);
