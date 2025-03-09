@@ -250,7 +250,6 @@ const TemplateEditor = ({
     ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
     : {};
 
-
   return (
     <Root size={size} scale={scale}>
       <DndContext
@@ -328,6 +327,8 @@ const TemplateEditor = ({
               */
             }}
             onEditEnd={onEditEnd}
+            onEditFunc={onEdit}
+            selectoRef={selectoRef}
             deselectSchema={onEditEnd}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}

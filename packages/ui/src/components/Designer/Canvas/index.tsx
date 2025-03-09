@@ -402,6 +402,10 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     !!activeElements[0].getAttribute('data-widgetgroup-id') &&
     activeElements[0].getAttribute('data-widgetgroup-id') !== activeElements[0].id;
 
+  if (moveable.current) {
+    moveable.current.updateTarget();
+  }
+
   return (
     <div
       style={{
@@ -435,7 +439,13 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           const isClick = inputEvent.type === 'mousedown';
           let newActiveElements: HTMLElement[] = isClick ? (selected as HTMLElement[]) : [];
 
+          console.log('### onselect activeElements: ', activeElements);
+          console.log('### onselect added: ', added);
+
           if (!isClick && added.length > 0) {
+
+
+
             newActiveElements = activeElements.concat(added as HTMLElement[]);
           }
           if (!isClick && removed.length > 0) {
@@ -487,8 +497,6 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
               selectoRef.current!.getSelectableElements()
                 .filter((elem: HTMLElement) => widgetGroupIds.includes(getWidgetGroupHTMLElemType(elem).widgetGroupId) || '');
 
-            console.log('widgetGroupElements', widgetGroupElements);
-
             newActiveElements = [
               ...new Map([
                 ...newActiveElements,
@@ -509,6 +517,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           }
         }}
       />
+      
       <Paper
         paperRefs={paperRefs}
         scale={scale}

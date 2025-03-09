@@ -1,3 +1,5 @@
+import React from 'react';
+import Selecto from 'Selecto';
 import type { SchemaForUI, Size, ChangeSchemas, CommitSchemas, RemoveSchemas } from '@pdfme/common';
 
 export type SidebarProps = {
@@ -18,4 +20,7 @@ export type SidebarProps = {
   deselectSchema: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (sidebarOpen: boolean) => void;
+  onEditFunc: (atargets: HTMLElement[]) => void;
+  //selecttoRef: React.MutableRefObject<Selecto>;
+  [key: string]: any
 };

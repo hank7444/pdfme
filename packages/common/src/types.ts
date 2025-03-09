@@ -126,6 +126,7 @@ type PropPanelProps = {
   options: UIOptions;
   theme: GlobalToken;
   i18n: (key: keyof Dict | string) => string;
+  [key: string]: any
 };
 
 export type PropPanelWidgetProps = _PropPanelWidgetProps & PropPanelProps;

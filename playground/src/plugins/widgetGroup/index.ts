@@ -6,11 +6,27 @@ import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } fr
 import { WidgetGroupSchema } from './types';
 
 
+
+
+
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   ui: async (arg) => { },
   pdf: () => { },
   propPanel: {
-    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas }) => {
+    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas, onEditFunc, selectoRef  }) => {
+      const updateSelectoActiveElements = () => {
+        if (selectoRef.current) {
+          setTimeout(() => {
+            const elems: HTMLElement[] = selectoRef.current.getSelectableElements();
+            const groupWidgetElems = elems.filter((elem: HTMLElement) => {
+              return elem.getAttribute('data-widgetgroup-id') === activeSchemaId || elem.id === activeSchema.id;
+            });
+
+            onEditFunc(groupWidgetElems);
+          }, 50);
+        }
+      }
+
       let widgetOptions: Option[] = [];
       const activeSchema = _activeSchema as WidgetGroupSchema;
       const activeSchemaId = activeSchema.id as string;
@@ -26,7 +42,24 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           { key: 'widgetGroupId', value: activeSchemaId, schemaId: activeSchemaId }
         ]);
 
-        if (newWidgetId) {
+        // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
+        if (!newWidgetId) {
+          activeSchema.widgetSection.selectSection.widget = undefined;
+          activeSchema.width = 62.5;
+          activeSchema.height = 37.5;
+          const hasChildWidgets = schemas.some((schema: SchemaForUI) => schema.widgetGroupId === activeSchemaId && schema.widgetGroupType === 'child');
+          const newSchemas = schemas.filter((schema: SchemaForUI) => {
+            return !(schema.widgetGroupId === activeSchemaId && !!schema.widgetGroupName);
+          });
+
+          if (hasChildWidgets) {
+            onEditFunc([]);
+          }
+
+          commitSchemas(newSchemas);
+          updateSelectoActiveElements();
+
+        } else {
           const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
           const { width, height, schemas: widgetSchemas } = widget;
 
@@ -53,6 +86,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               schema.name = `widgetGroup_${activeSchema.id}_${widget.name}_comp_${idx}`;
               schema.widgetGroupId = activeSchema.id;
               schema.widgetGroupName = widget.name;
+              schema.widgetGroupType = 'child';
 
               // Convert from relative coordinates to absolute coordinates
               const parantPos = activeSchema.position;
@@ -61,8 +95,10 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
               return schema;
             });
-
+          
             commitSchemas(newSchemas.concat(newWidgetSchemas));
+            onEditFunc([]);
+            updateSelectoActiveElements();
           }
         }
       }
@@ -124,6 +160,8 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       width: 62.5,
       height: 37.5,
       widgetGroupId: '',
+      widgetGroupName: '',
+      widgetGroupType: 'parent',
       widgetSection: {
         selectSection: {
           widgetCategory: undefined,

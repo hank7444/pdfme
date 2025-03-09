@@ -8,29 +8,31 @@ import ListView from './ListView/index';
 import DetailView from './DetailView/index';
 
 const Sidebar = (props: SidebarProps) => {
-  const { sidebarOpen, setSidebarOpen, activeElements, schemas } = props;
+  const { sidebarOpen, setSidebarOpen, activeElements, schemas, selectoRef } = props;
   const { token } = theme.useToken();
   const getActiveSchemas = () => {
     return schemas.filter((s: SchemaForUI) => 
       activeElements.map((ae: HTMLElement) => ae.id).includes(s.id));
   }
   const getLastActiveSchema = () => {
-    const activeSchemas = getActiveSchemas();
+    const activeSchemas: SchemaForUI[] = getActiveSchemas();
     let activeSchema: SchemaForUI = null;
+
+    console.log('@@@@@ activeSchemas: ', activeSchemas);
+
+    if (activeSchemas.length && !activeSchemas[0].widgetGroupType) {
+      return activeSchemas[0];
+    }
 
     activeSchemas.forEach((s: SchemaForUI) => {
       if (!activeSchema) {
-        if (s.widgetGroupId === s.id) {
+        if (s.widgetGroupType === 'parent') {
           activeSchema = s;
         }
       }
     })
 
-    if (!activeSchema) {
-      activeSchema = activeSchemas[activeSchemas.length - 1];
-    }
-
-    return activeSchema;
+    return !activeSchema ? activeSchemas[activeSchemas.length - 1] : activeSchema;
   };
 
   const iconProps = { strokeWidth: 1.5, size: 20 };

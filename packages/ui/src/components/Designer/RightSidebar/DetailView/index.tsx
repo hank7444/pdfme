@@ -18,7 +18,7 @@ const { Text } = Typography;
 type DetailViewProps = Pick<SidebarProps,
   'size' | 'schemas' | 'schemasList' | 'pageSize' | 'groupManager' |
   'changeSchemas' | 'commitSchemas' | 'removeSchemas' |
-  'activeElements' | 'deselectSchema'
+  'activeElements' | 'deselectSchema' | 'selectoRef'
 > & {
   activeSchema: SchemaForUI;
 };
@@ -28,7 +28,6 @@ const DetailView = (props: DetailViewProps) => {
 
   const { size, schemasList, changeSchemas, deselectSchema, activeSchema } = props;
   const form = useForm();
-
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
   const options = useContext(OptionsContext);
