@@ -31,6 +31,7 @@ const SelectableSortableItem = ({
 
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
+  console.log('@@@ pluginsRegistry: ', pluginsRegistry);
   const { setNodeRef, listeners, isDragging, isSorting, transform, transition } = useSortable({
     id: schema.id,
   });

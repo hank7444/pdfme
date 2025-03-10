@@ -14,6 +14,7 @@ import {
   SchemaForUI,
   BasePdf,
   BlankPdf,
+  EditWidgetInfo,
   CommonOptions,
   Template,
   GeneratorOptions,
@@ -187,3 +188,4 @@ export type PreviewProps = z.infer<typeof PreviewProps> & { plugins?: Plugins };
 export type DesignerProps = z.infer<typeof DesignerProps> & { plugins?: Plugins };
 export type SchemaPageArray = z.infer<typeof SchemaPageArray>;
 export type LegacySchemaPageArray = z.infer<typeof LegacySchemaPageArray>;
+export type EditWidgetInfo = z.infer<typeof EditWidgetInfo>;
