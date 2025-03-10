@@ -417,6 +417,16 @@ function DesignerApp() {
     ),
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 检查是否按下的是 Enter 键
+    if (e.key === 'Enter') {
+      // 检查当前聚焦的元素是否是 height 输入框
+      if (document.activeElement === e.target) {
+        onResizeWidget();
+      }
+    }
+  };
+
   const navItems: NavItem[] = [
     {
       label: "Action",
@@ -443,15 +453,17 @@ function DesignerApp() {
       content: (
         <>
           <span style={{ marginRight: "10px" }}>Width:&nbsp;
-            <input type="number" min={20} max={210} value={widgetWidth} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
+            <input type="text" min={20} max={210} value={widgetWidth || ''} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
               onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetWidth(+e.target.value); }}
+              onKeyUp={handleKeyDown}
             />
           </span>
           <span>Height:&nbsp;
-            <input type="number" min={20} max={297} value={widgetHeight} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
+            <input type="text" min={20} max={297} value={widgetHeight || ''} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
               onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetHeight(+e.target.value); }}
+              onKeyUp={handleKeyDown}
             />
           </span>
           <button
