@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useContext, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
   cloneDeep,
   ZOOM,
@@ -12,6 +12,7 @@ import {
   px2mm,
 } from '@pdfme/common';
 import { DndContext } from '@dnd-kit/core';
+import Selecto, { ElementType } from 'react-selecto';
 import RightSidebar from './RightSidebar/index';
 import LeftSidebar from './LeftSidebar';
 import Canvas from './Canvas/index';
@@ -41,24 +42,31 @@ const scaleDragPosAdjustment = (adjustment: number, scale: number): number => {
   return 0;
 }
 
-const TemplateEditor = ({
+const TemplateEditor = forwardRef(({
   template,
   size,
+  isEditWidgetMode,
+  isWidgetDesigner,
   onSaveTemplate,
   onChangeTemplate,
   onPageCursorChange,
+  onPageSizesChange,
 }: Omit<DesignerProps, 'domContainer'> & {
   size: Size;
+  isEditWidgetMode: boolean;
+  isWidgetDesigner: boolean;
   onSaveTemplate: (t: Template) => void;
   onChangeTemplate: (t: Template) => void;
 } & {
-  onChangeTemplate: (t: Template) => void
-  onPageCursorChange: (newPageCursor: number) => void
-}) => {
+  onChangeTemplate: (t: Template) => void;
+  onPageCursorChange?: (newPageCursor: number) => void;
+  onPageSizesChange?: (pageSizes: Size[]) => void;
+}, ref) => {
   const past = useRef<SchemaForUI[][]>([]);
   const future = useRef<SchemaForUI[][]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const paperRefs = useRef<HTMLDivElement[]>([]);
+  const selectoRef = useRef<Selecto>(null);
 
   const i18n = useContext(I18nContext);
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -71,6 +79,17 @@ const TemplateEditor = ({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [prevTemplate, setPrevTemplate] = useState<Template | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    setPageCursor(pageCursor: number) {
+    
+      if (canvasRef.current) {
+        setPageCursor(pageCursor);
+        const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
+        canvasRef.current.scroll({ top: scrollTop + 25, behavior: 'smooth' });
+      }
+    },
+  }));
 
   const { backgrounds, pageSizes, scale, error, refresh } =
     useUIPreProcessor({ template, size, zoomLevel });
@@ -85,6 +104,12 @@ const TemplateEditor = ({
     setHoveringSchemaId(null);
   };
 
+  useEffect(() => {
+    if (onPageSizesChange) {
+      onPageSizesChange(pageSizes);
+    }
+  }, [pageSizes]);
+
   useScrollPageCursor({
     ref: canvasRef,
     pageSizes,
@@ -92,8 +117,11 @@ const TemplateEditor = ({
     pageCursor,
     onChangePageCursor: (p) => {
       setPageCursor(p);
-      onPageCursorChange(p)
       onEditEnd();
+
+      if (onPageCursorChange) {
+        onPageCursorChange(p);
+      }
     },
   });
 
@@ -104,7 +132,7 @@ const TemplateEditor = ({
       const _schemasList = cloneDeep(schemasList);
       _schemasList[pageCursor] = newSchemas;
       setSchemasList(_schemasList);
-      onChangeTemplate(schemasList2template(_schemasList, template.basePdf));
+      onChangeTemplate(schemasList2template(_schemasList, template.basePdf, template.editWidgetInfo));
     },
     [template, schemasList, pageCursor, onChangeTemplate]
   );
@@ -152,6 +180,11 @@ const TemplateEditor = ({
     const sl = await template2SchemasList(newTemplate);
     setSchemasList(sl);
     onEditEnd();
+
+    if (isWidgetDesigner) {
+      return;
+    }
+    
     setPageCursor(0);
     if (canvasRef.current?.scroll) {
       canvasRef.current.scroll({ top: 0, behavior: 'smooth' });
@@ -159,7 +192,12 @@ const TemplateEditor = ({
   }, []);
 
   const addSchema = (defaultSchema: Schema) => {
-    const [paddingTop, paddingRight, paddingBottom, paddingLeft] = isBlankPdf(template.basePdf) ? template.basePdf.padding : [0, 0, 0, 0];
+    const [paddingTop, paddingRight, paddingBottom, paddingLeft] = isWidgetDesigner
+      ? template.editWidgetInfo!.padding
+      : isBlankPdf(template.basePdf)
+      ? template.basePdf.padding
+      : [0, 0, 0, 0];
+  
     const pageSize = pageSizes[pageCursor];
 
     const newSchemaName = (prefix: string) => {
@@ -244,9 +282,10 @@ const TemplateEditor = ({
   if (error) {
     return <ErrorScreen size={size} error={error} />;
   }
-  const pageManipulation = isBlankPdf(template.basePdf)
-    ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
-    : {};
+
+  const pageManipulation = isWidgetDesigner || !isBlankPdf(template.basePdf)
+    ? {}
+    : { addPageAfter: handleAddPageAfter, removePage: handleRemovePage };
 
   return (
     <Root size={size} scale={scale}>
@@ -272,11 +311,13 @@ const TemplateEditor = ({
         }}
         onDragStart={onEditEnd}
       >
-        <LeftSidebar
-          height={canvasRef.current ? canvasRef.current.clientHeight : 0}
-          scale={scale}
-          basePdf={template.basePdf}
-        />
+        {!isEditWidgetMode &&
+          <LeftSidebar
+            height={canvasRef.current ? canvasRef.current.clientHeight : 0}
+            scale={scale}
+            basePdf={template.basePdf}
+          />
+        }
 
         <div style={{ position: 'absolute', width: canvasWidth, marginLeft: LEFT_SIDEBAR_WIDTH }}>
           <CtlBar
@@ -291,6 +332,7 @@ const TemplateEditor = ({
             }}
             zoomLevel={zoomLevel}
             setZoomLevel={setZoomLevel}
+            onPageCursorChange={onPageCursorChange}
             {...pageManipulation}
           />
 
@@ -304,21 +346,44 @@ const TemplateEditor = ({
             schemasList={schemasList}
             schemas={schemasList[pageCursor] ?? []}
             changeSchemas={changeSchemas}
+            commitSchemas={commitSchemas}
+            removeSchemas={removeSchemas}
             onSortEnd={onSortEnd}
-            onEdit={id => {
-              const editingElem = document.getElementById(id);
-              editingElem && onEdit([editingElem]);
+            onEdit={(ids: string[]) => {
+              const editingElems = ids
+                .map(id => document.getElementById(id))
+                .filter(element => element !== null);
+
+              editingElems.length && onEdit(editingElems);
+
+              /*
+              if (editingElem) {
+                const widgetGroupId = editingElem?.getAttribute('data-widgetgroup-id') || '';
+                if (widgetGroupId === editingElem.id) {
+                  const widgetGroupElements: HTMLElement[] = selectoRef.current!.getSelectableElements()
+                    .filter((elem: HTMLElement) => elem.getAttribute('data-widgetgroup-id') === widgetGroupId);
+                  onEdit(widgetGroupElements);
+                } else {
+                  onEdit([editingElem]);
+                }
+              }
+              */
             }}
             onEditEnd={onEditEnd}
+            onEditFunc={onEdit}
+            selectoRef={selectoRef}
             deselectSchema={onEditEnd}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
+            isEditWidgetMode={isEditWidgetMode}
           />
-
+        
           <Canvas
             ref={canvasRef}
             paperRefs={paperRefs}
+            selectoRef={selectoRef}
             basePdf={template.basePdf}
+            editWidgetInfo={template.editWidgetInfo}
             hoveringSchemaId={hoveringSchemaId}
             onChangeHoveringSchemaId={onChangeHoveringSchemaId}
             height={size.height - RULER_HEIGHT * ZOOM}
@@ -332,12 +397,14 @@ const TemplateEditor = ({
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
             sidebarOpen={sidebarOpen}
+            isEditWidgetMode={isEditWidgetMode}
+            isWidgetDesigner={isWidgetDesigner}
             onEdit={onEdit}
           />
         </div>
       </DndContext>
     </Root>
   );
-};
+});
 
 export default TemplateEditor;

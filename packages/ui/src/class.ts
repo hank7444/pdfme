@@ -1,6 +1,6 @@
 import ReactDOM from 'react-dom';
 import { DESTROYED_ERR_MSG, DEFAULT_LANG } from './constants.js';
-import { debounce } from './helper.js';
+import { debounce, flattenTemplateSchema, nestTemplateSchema } from './helper.js';
 import {
   cloneDeep,
   Template,
@@ -17,6 +17,7 @@ import {
   checkInputs,
   checkUIOptions,
   checkPreviewProps,
+  Schema,
 } from '@pdfme/common';
 import { builtInPlugins } from '@pdfme/schemas';
 
@@ -50,8 +51,8 @@ export abstract class BaseUIClass {
     checkUIProps(props);
 
     const { domContainer, template, options = {}, plugins = {} } = props;
-    this.domContainer = domContainer;
-    this.template = cloneDeep(template);
+    this.domContainer = domContainer as HTMLElement;
+    this.template = flattenTemplateSchema(template);
     this.options = options;
     this.size = {
       height: this.domContainer.clientHeight || window.innerHeight,
@@ -91,14 +92,13 @@ export abstract class BaseUIClass {
   public getTemplate() {
     if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
 
-    return this.template;
+    return nestTemplateSchema(this.template);
   }
 
   public updateTemplate(template: Template) {
     checkTemplate(template);
     if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
-
-    this.template = cloneDeep(template);
+    this.template = flattenTemplateSchema(template);
     this.render();
   }
 

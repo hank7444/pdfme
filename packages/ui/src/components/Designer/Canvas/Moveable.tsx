@@ -1,5 +1,5 @@
 import React, { useEffect, forwardRef, Ref } from 'react';
-import Moveable, { OnDrag, OnResize, OnRotate, OnRotateEnd, OnClick } from 'react-moveable';
+import Moveable, { OnDrag, OnResize, OnRotate, OnRotateEnd, OnClick, OnClickGroup } from 'react-moveable';
 import { theme } from 'antd';
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   verticalGuidelines: number[];
   keepRatio: boolean;
   rotatable: boolean;
+  resizable: boolean;
   onDrag: ({ target, left, top }: OnDrag) => void;
   onDragEnd: ({ target }: { target: HTMLElement | SVGElement }) => void;
   onDragGroupEnd: ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => void;
@@ -19,6 +20,7 @@ type Props = {
   onResizeEnd: ({ target }: { target: HTMLElement | SVGElement }) => void;
   onResizeGroupEnd: ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => void;
   onClick: (e: OnClick) => void;
+  onClickGroup: (e: OnClickGroup) => void;
 };
 
 const className = 'pdfme-moveable';
@@ -47,7 +49,7 @@ const _Moveable = (props: Props, ref: Ref<any>) => {
       snapCenter
       draggable
       rotatable={props.rotatable}
-      resizable
+      resizable={props.resizable}
       throttleDrag={1}
       throttleRotate={1}
       throttleResize={1}
@@ -76,6 +78,7 @@ const _Moveable = (props: Props, ref: Ref<any>) => {
       onResizeEnd={props.onResizeEnd}
       onResizeGroupEnd={props.onResizeGroupEnd}
       onClick={props.onClick}
+      onClickGroup={props.onClickGroup}
     />
   );
 };

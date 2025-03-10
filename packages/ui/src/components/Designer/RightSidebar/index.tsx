@@ -1,5 +1,6 @@
 import React from 'react';
 import { theme, Button } from 'antd';
+import { SchemaForUI } from '@pdfme/common';
 import type { SidebarProps } from '../../../types';
 import { RIGHT_SIDEBAR_WIDTH } from '../../../constants';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -8,13 +9,30 @@ import DetailView from './DetailView/index';
 
 const Sidebar = (props: SidebarProps) => {
   const { sidebarOpen, setSidebarOpen, activeElements, schemas } = props;
-
   const { token } = theme.useToken();
-  const getActiveSchemas = () =>
-    schemas.filter((s) => activeElements.map((ae) => ae.id).includes(s.id));
+  const getActiveSchemas = () => {
+    return activeElements
+      .map((ae: HTMLElement) => ae.id) 
+      .map((id: string) => schemas.find((s: SchemaForUI) => s.id === id))
+      .filter((s: SchemaForUI | undefined) => s !== undefined);
+  }
   const getLastActiveSchema = () => {
-    const activeSchemas = getActiveSchemas();
-    return activeSchemas[activeSchemas.length - 1];
+    const activeSchemas: SchemaForUI[] = getActiveSchemas();
+    let activeSchema: SchemaForUI = null;
+
+    if (activeSchemas.length && !activeSchemas[0].widgetGroupType) {
+      return activeSchemas[0];
+    }
+
+    activeSchemas.forEach((s: SchemaForUI) => {
+      if (!activeSchema) {
+        if (s.widgetGroupType === 'parent') {
+          activeSchema = s;
+        }
+      }
+    })
+
+    return !activeSchema ? activeSchemas[activeSchemas.length - 1] : activeSchema;
   };
 
   const iconProps = { strokeWidth: 1.5, size: 20 };
