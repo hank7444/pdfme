@@ -33,7 +33,7 @@ function DesignerApp() {
 
   const debouncedWidgetName = useDebounce(widgetName, 300);
 
-  const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName || widgetNameErr;
+  const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName || !!widgetNameErr;
 
   const buildDesigner = useCallback(async () => {
     if (!designerRef.current) return;
@@ -171,6 +171,106 @@ function DesignerApp() {
       );
 
       setWidgets(widgets);
+    }
+  };
+
+  const onViewWidgetData = () => {
+    const formatJSONToHTML = (data: any): string => {
+      if (typeof data === "object" && data !== null) {
+        let htmlContent = "<ul>";
+        
+        // 如果是数组，则遍历数组
+        if (Array.isArray(data)) {
+          data.forEach((item, index) => {
+            htmlContent += `<li><span class="key">[${index}]:</span> ${formatJSONToHTML(item)}</li>`;
+          });
+        } else {
+          // 如果是对象，则遍历对象的键值对
+          Object.keys(data).forEach((key) => {
+            htmlContent += `<li><span class="key">"${key}":</span> ${formatJSONToHTML(data[key])}</li>`;
+          });
+        }
+        
+        htmlContent += "</ul>";
+        return htmlContent;
+      } else if (typeof data === "string") {
+        // 对字符串值加上 .string 样式
+        return `<span class="string">"${data}"</span>`;
+      } else if (typeof data === "number") {
+        // 对数字值加上 .number 样式
+        return `<span class="number">${data}</span>`;
+      } else if (typeof data === "boolean") {
+        // 对布尔值加上 .boolean 样式
+        return `<span class="boolean">${data}</span>`;
+      } else {
+        return `<span class="null">null</span>`; // 对 null 值加上 .null 样式
+      }
+    };
+
+    try {
+
+      const newTab = window.open("", "_blank");
+      if (newTab) {
+        // 等待新标签页加载完成后传递数据
+        newTab.document.write("<html><head><title>Widget Data</title></head><body>");
+        newTab.document.write("<h1>Widget Data</h1>");
+        newTab.document.write(`
+          <style>
+            body {
+              font-family: 'Consolas', 'Monaco', monospace;
+              background-color: #1e1e1e;
+              color: #dcdcdc;
+              margin: 0;
+              padding: 20px;
+            }
+            pre {
+              background-color: #252526;
+              padding: 10px;
+              border-radius: 5px;
+              overflow-x: auto;
+              color: #dcdcdc;
+            }
+            .key {
+              color: #569cd6; /* VS Code key color */
+              font-weight: bold;
+            }
+            .string {
+              color: #dcdcaa; /* VS Code string color */
+            }
+            .number {
+              color: #b5cea8; /* VS Code number color */
+            }
+            .boolean {
+              color: #ce9178; /* VS Code boolean color */
+            }
+            .null {
+              color: #808080; /* VS Code null color */
+            }
+            ul {
+              list-style-type: none;
+            }
+          </style>
+        `);
+        
+        // 读取 localStorage 数据并格式化为 JSON
+        const storedData = localStorage.getItem("widgets");
+        const parsedData = storedData ? JSON.parse(storedData) : null;
+    
+        // 将格式化后的 JSON 数据显示在新标签页
+        if (parsedData) {
+          newTab.document.write("<pre>" + formatJSONToHTML(parsedData) + "</pre>");
+        } else {
+          newTab.document.write("<p>No data found in localStorage.</p>");
+        }
+    
+        // 关闭 HTML 标签
+        newTab.document.write("</body></html>");
+        newTab.document.close();  // 完成写入并关闭文档流
+      } else {
+        console.error("Failed to open new tab.");
+      }
+    } catch {
+      //
     }
   };
 
@@ -343,13 +443,13 @@ function DesignerApp() {
       content: (
         <>
           <span style={{ marginRight: "10px" }}>Width:&nbsp;
-            <input type="number" min={20} max={210} value={widgetWidth} style={{ width: "80px", border: "1px solid black" }}
+            <input type="number" min={20} max={210} value={widgetWidth} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
               onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetWidth(+e.target.value); }}
             />
           </span>
           <span>Height:&nbsp;
-            <input type="number" min={20} max={297} value={widgetHeight} style={{ width: "80px", border: "1px solid black" }}
+            <input type="number" min={20} max={297} value={widgetHeight} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
               onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetHeight(+e.target.value); }}
             />
@@ -396,21 +496,32 @@ function DesignerApp() {
       <NavBar items={navItems} />
       <div ref={designerRef} className="flex-1 w-full" />
 
-      <button
-        className="px-2 py-1 border rounded hover:bg-gray-100"
-        style={{
-          backgroundColor: finalIsDisabledSaveBtn ? 'grey' : 'inherit',
-          color: finalIsDisabledSaveBtn ? 'lightgrey' : 'inherit',
-          cursor: finalIsDisabledSaveBtn ? 'not-allowed' : 'pointer',
-          position: 'absolute',
-          right: '30px',
-          top: '60px',
-        }}
-        disabled={finalIsDisabledSaveBtn}
-        onClick={() => onSaveWidget()}
-      >
-        Save Widget
-      </button>
+      <div style={{
+        position: 'absolute',
+        right: '30px',
+        top: '60px',
+        fontSize: '14px',
+      }}>
+        <button
+          className="px-2 py-1 border rounded hover:bg-gray-100"
+          style={{
+            backgroundColor: finalIsDisabledSaveBtn ? 'grey' : 'inherit',
+            color: finalIsDisabledSaveBtn ? 'lightgrey' : 'inherit',
+            cursor: finalIsDisabledSaveBtn ? 'not-allowed' : 'pointer',
+          }}
+          disabled={finalIsDisabledSaveBtn}
+          onClick={() => onSaveWidget()}
+        >
+          Save Widget
+        </button>
+        <button
+          style={{ marginLeft: '10px' }}
+          className="px-2 py-1 border rounded hover:bg-gray-100"
+          onClick={() => onViewWidgetData()}
+        >
+          View Widget Data
+        </button>
+      </div>
     </>
   );
 }
