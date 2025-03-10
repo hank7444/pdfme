@@ -2,8 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
-import { useDebounce } from './hooks';
-import { Widget } from './types';
+import { Widget } from '../types';
 import {
   getFontsData,
   getTemplateById,
@@ -13,8 +12,9 @@ import {
   uuid,
   DEFAULT_WIDGET_WIDTH,
   DEFAULT_WIDGET_HEIGHT,
-} from "./helper";
-import { NavBar, NavItem } from "./NavBar";
+} from "../helper";
+import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
+import defaultWidgets from "./defaultWidgets";
 
 
 function DesignerApp() {
@@ -26,14 +26,11 @@ function DesignerApp() {
   const [widgetWidth, setWidgetWidth] = useState<number>(DEFAULT_WIDGET_WIDTH);
   const [widgetHeight, setWidgetHeight] = useState<number>(DEFAULT_WIDGET_HEIGHT);
   const [widgetName, setWidgetName] = useState<string>('');
-  const [widgetNameErr, setWidgetNameErr] = useState<string>('');
   const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
   const [action, setAction] = useState('new');
   const [widgets, setWidgets] = useState<Widget[]>([]);
 
-  const debouncedWidgetName = useDebounce(widgetName, 300);
-
-  const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName || !!widgetNameErr;
+  const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
 
   const buildDesigner = useCallback(async () => {
     if (!designerRef.current) return;
@@ -87,6 +84,10 @@ function DesignerApp() {
 
 
     // init widget dropdown
+    getWidgetsFromLocalStorage();
+  }, []);
+
+  const getWidgetsFromLocalStorage = () => {
     try {
       const widgetsFromLocal = localStorage.getItem("widgets");
 
@@ -97,8 +98,7 @@ function DesignerApp() {
     } catch {
       localStorage.removeItem("widgets");
     }
-
-  }, []);
+  }
 
   const onResizeWidget = () => {
     if (designer.current) {
@@ -179,13 +179,11 @@ function DesignerApp() {
       if (typeof data === "object" && data !== null) {
         let htmlContent = "<ul>";
         
-        // 如果是数组，则遍历数组
         if (Array.isArray(data)) {
           data.forEach((item, index) => {
             htmlContent += `<li><span class="key">[${index}]:</span> ${formatJSONToHTML(item)}</li>`;
           });
         } else {
-          // 如果是对象，则遍历对象的键值对
           Object.keys(data).forEach((key) => {
             htmlContent += `<li><span class="key">"${key}":</span> ${formatJSONToHTML(data[key])}</li>`;
           });
@@ -194,16 +192,13 @@ function DesignerApp() {
         htmlContent += "</ul>";
         return htmlContent;
       } else if (typeof data === "string") {
-        // 对字符串值加上 .string 样式
         return `<span class="string">"${data}"</span>`;
       } else if (typeof data === "number") {
-        // 对数字值加上 .number 样式
         return `<span class="number">${data}</span>`;
       } else if (typeof data === "boolean") {
-        // 对布尔值加上 .boolean 样式
         return `<span class="boolean">${data}</span>`;
       } else {
-        return `<span class="null">null</span>`; // 对 null 值加上 .null 样式
+        return `<span class="null">null</span>`;
       }
     };
 
@@ -211,7 +206,6 @@ function DesignerApp() {
 
       const newTab = window.open("", "_blank");
       if (newTab) {
-        // 等待新标签页加载完成后传递数据
         newTab.document.write("<html><head><title>Widget Data</title></head><body>");
         newTab.document.write("<h1>Widget Data</h1>");
         newTab.document.write(`
@@ -252,25 +246,36 @@ function DesignerApp() {
           </style>
         `);
         
-        // 读取 localStorage 数据并格式化为 JSON
         const storedData = localStorage.getItem("widgets");
         const parsedData = storedData ? JSON.parse(storedData) : null;
     
-        // 将格式化后的 JSON 数据显示在新标签页
         if (parsedData) {
           newTab.document.write("<pre>" + formatJSONToHTML(parsedData) + "</pre>");
         } else {
           newTab.document.write("<p>No data found in localStorage.</p>");
         }
     
-        // 关闭 HTML 标签
         newTab.document.write("</body></html>");
-        newTab.document.close();  // 完成写入并关闭文档流
+        newTab.document.close();
       } else {
         console.error("Failed to open new tab.");
       }
     } catch {
       //
+    }
+  };
+
+  const onResetDefaultWidgets = () => {
+    localStorage.setItem("widgets", JSON.stringify(defaultWidgets));
+    getWidgetsFromLocalStorage();
+    setSelectedWidgetId('');
+    setWidgetWidth(DEFAULT_WIDGET_WIDTH);
+    setWidgetHeight(DEFAULT_WIDGET_HEIGHT);
+
+    if (designer.current) {
+      const template: Template = getBlankTemplate(DEFAULT_WIDGET_WIDTH, DEFAULT_WIDGET_HEIGHT);
+      template.schemas = [[]];
+      designer.current.updateTemplate(template);
     }
   };
 
@@ -391,36 +396,36 @@ function DesignerApp() {
     }
   }, [onChangeTemplate])
 
-  useEffect(() => {
-    if (widgets.some((widget) => widget.name.toUpperCase() === widgetName.toUpperCase())) {
-      setWidgetNameErr('Duplicate widget name detected!');
-    } else {
-      setWidgetNameErr('');
-    }
-  }, [debouncedWidgetName])
-
   const widgetNavItem = {
     label: "Widget List",
     content: (
-      <select
-        className="w-full border rounded px-2 py-1"
-        value={selectedWidgetId || ''}
-        onChange={handleWidgetSelectOnChange}
-      >
-        <option value="" disabled>Please select widget...</option>
-        {widgets.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
+      <>
+        <select
+          className="w-full border rounded px-2 py-1"
+          style={{ width: '200px' }}
+          value={selectedWidgetId || ''}
+          onChange={handleWidgetSelectOnChange}
+        >
+          <option value="" disabled>Please select widget...</option>
+          {widgets.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-2 py-1 border rounded hover:bg-gray-100"
+          style={{ marginLeft: '10px' }}
+          onClick={onResetDefaultWidgets}
+        >
+          Reset to Defaults
+        </button>
+      </>
     ),
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // 检查是否按下的是 Enter 键
     if (e.key === 'Enter') {
-      // 检查当前聚焦的元素是否是 height 输入框
       if (document.activeElement === e.target) {
         onResizeWidget();
       }
@@ -431,7 +436,7 @@ function DesignerApp() {
     {
       label: "Action",
       content: (
-        <>
+        <div style={{ marginTop: '10px' }}>
           <label>
             <input type="radio" id="new" name="action" value="new"
               checked={action === 'new'}
@@ -445,7 +450,7 @@ function DesignerApp() {
               onChange={handleActionRadioOnChange} />
             <span style={{ marginLeft: '5px' }}>Update Widget</span>
           </label>
-        </>
+        </div>
       ),
     },
     {
@@ -491,7 +496,6 @@ function DesignerApp() {
               }}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetName(e.target.value); }}
               />
-              {!!widgetNameErr && <span style={{ position: 'absolute', marginLeft: '10px', color: 'red' }}>{widgetNameErr}</span>}
             </div>
           </div>
         </>
