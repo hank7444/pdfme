@@ -48,13 +48,21 @@ type PagerProps = {
   pageCursor: number;
   pageNum: number;
   setPageCursor: (page: number) => void;
+  onPageCursorChange?: (page: number) => void;
   style: { textStyle: TextStyle };
 };
 
-const Pager = ({ pageCursor, pageNum, setPageCursor, style }: PagerProps) => {
+const Pager = ({ pageCursor, pageNum, setPageCursor, onPageCursorChange, style }: PagerProps) => {
   return (
     <div style={{ display: 'flex', alignItems: 'center' }}>
-      <Button type="text" disabled={pageCursor <= 0} onClick={() => setPageCursor(pageCursor - 1)}>
+      <Button type="text" disabled={pageCursor <= 0} onClick={() => {
+          const newPageCursor = pageCursor - 1;
+          setPageCursor(newPageCursor);
+
+          if (onPageCursorChange) {
+            onPageCursorChange(newPageCursor);
+          }
+        }}>
         <ChevronLeft size={16} color={style.textStyle.color} />
       </Button>
       <Text strong style={style.textStyle}>
@@ -63,7 +71,14 @@ const Pager = ({ pageCursor, pageNum, setPageCursor, style }: PagerProps) => {
       <Button
         type="text"
         disabled={pageCursor + 1 >= pageNum}
-        onClick={() => setPageCursor(pageCursor + 1)}
+        onClick={() => {
+          const newPageCursor = pageCursor + 1;
+          setPageCursor(newPageCursor);
+
+          if (onPageCursorChange) {
+            onPageCursorChange(newPageCursor);
+          }
+        }}
       >
         <ChevronRight size={16} color={style.textStyle.color} />
       </Button>
@@ -92,6 +107,7 @@ type CtlBarProps = {
   setZoomLevel: (zoom: number) => void;
   addPageAfter?: () => void;
   removePage?: () => void;
+  onPageCursorChange?: (pageCursor: number) => void;
 };
 
 const CtlBar = (props: CtlBarProps) => {
@@ -107,6 +123,7 @@ const CtlBar = (props: CtlBarProps) => {
     setZoomLevel,
     addPageAfter,
     removePage,
+    onPageCursorChange,
   } = props;
 
   const contextMenuItems: MenuProps['items'] = [];
@@ -157,6 +174,7 @@ const CtlBar = (props: CtlBarProps) => {
             pageCursor={pageCursor}
             pageNum={pageNum}
             setPageCursor={setPageCursor}
+            onPageCursorChange={onPageCursorChange}
           />
         )}
         <Zoom style={{ textStyle }} zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />

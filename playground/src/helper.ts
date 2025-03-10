@@ -130,6 +130,17 @@ export const getPlugins = () => {
   };
 };
 
+export const getLittlePlugins = () => {
+  return {
+    Text: text,
+    Line: line,
+    Rectangle: rectangle,
+    Ellipse: ellipse,
+    Signature: plugins.signature,
+    WidgetGroup: plugins.widgetGroup,
+  };
+}
+
 export const translations: { label: string; value: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'zh', label: 'Chinese' },
@@ -183,27 +194,18 @@ export const isJsonString = (str: string) => {
   return true;
 };
 
-export const TEMPLATE_WIDTH = 210;
-export const TEMPLATE_HEIGHT = 297
+export const DEFAULT_TEMPLATE_WIDTH = 210;
+export const DEFAULT_TEMPLATE_HEIGHT = 297
 export const DEFAULT_WIDGET_WIDTH = 100;
 export const DEFAULT_WIDGET_HEIGHT = 60;
 
-export const getTemplatePadding = (width?: number , height?: number) => {
-  const widthPadding = width ? (TEMPLATE_WIDTH - width) / 2 : 10;
-  const heightPadding = height ? (TEMPLATE_HEIGHT - height) / 2: 20;
-
-  return { widthPadding, heightPadding };
-};
-
-export const getBlankTemplate = (width?: number , height?: number) => {
-  const { widthPadding, heightPadding } = getTemplatePadding(width, height);
-
+export const getBlankTemplate = () => {
   return ({
     schemas: [{}],
     basePdf: {
-      width: TEMPLATE_WIDTH,
-      height: TEMPLATE_HEIGHT,
-      padding: [heightPadding, widthPadding, heightPadding, widthPadding],
+      width: DEFAULT_TEMPLATE_WIDTH,
+      height: DEFAULT_TEMPLATE_HEIGHT,
+      padding: [20, 10, 20, 10],
     },
   } as Template);
 };
@@ -221,3 +223,96 @@ export const getTemplateById = async (templateId: string): Promise<Template> => 
   checkTemplate(template);
   return template as Template;
 };
+
+
+export const displayJSONDataFromLocalStorage = (localStorageKey = '') => {
+  // eslint-disable-next-line
+  const formatJSONToHTML = (data: any): string => {
+    if (typeof data === "object" && data !== null) {
+      let htmlContent = "<ul>";
+
+      if (Array.isArray(data)) {
+        data.forEach((item, index) => {
+          htmlContent += `<li><span class="key">[${index}]:</span> ${formatJSONToHTML(item)}</li>`;
+        });
+      } else {
+        Object.keys(data).forEach((key) => {
+          htmlContent += `<li><span class="key">"${key}":</span> ${formatJSONToHTML(data[key])}</li>`;
+        });
+      }
+
+      htmlContent += "</ul>";
+      return htmlContent;
+    } else if (typeof data === "string") {
+      return `<span class="string">"${data}"</span>`;
+    } else if (typeof data === "number") {
+      return `<span class="number">${data}</span>`;
+    } else if (typeof data === "boolean") {
+      return `<span class="boolean">${data}</span>`;
+    } else {
+      return `<span class="null">null</span>`;
+    }
+  };
+
+  try {
+    const newTab = window.open("", "_blank");
+
+    if (newTab) {
+      newTab.document.write("<html><head><title>Widget Data</title></head><body>");
+      newTab.document.write("<h1>Widget Data</h1>");
+      newTab.document.write(`
+        <style>
+          body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background-color: #1e1e1e;
+            color: #dcdcdc;
+            margin: 0;
+            padding: 20px;
+          }
+          pre {
+            background-color: #252526;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #dcdcdc;
+          }
+          .key {
+            color: #569cd6; /* VS Code key color */
+            font-weight: bold;
+          }
+          .string {
+            color: #dcdcaa; /* VS Code string color */
+          }
+          .number {
+            color: #b5cea8; /* VS Code number color */
+          }
+          .boolean {
+            color: #ce9178; /* VS Code boolean color */
+          }
+          .null {
+            color: #808080; /* VS Code null color */
+          }
+          ul {
+            list-style-type: none;
+          }
+        </style>
+      `);
+
+      const storedData = localStorage.getItem(localStorageKey);
+      const parsedData = storedData ? JSON.parse(storedData) : null;
+
+      if (parsedData) {
+        newTab.document.write("<pre>" + formatJSONToHTML(parsedData) + "</pre>");
+      } else {
+        newTab.document.write("<p>No data found in localStorage.</p>");
+      }
+
+      newTab.document.write("</body></html>");
+      newTab.document.close();
+    } else {
+      console.error("Failed to open new tab.");
+    }
+  } catch {
+    //
+  }
+}
