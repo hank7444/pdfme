@@ -445,7 +445,6 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
           if (!isClick && removed.length > 0) {
             newActiveElements = activeElements.filter((ae) => !removed.includes(ae));
           }
-
           
           /* TBD
           if (newActiveElements.length === 1 && getWidgetGroupHTMLElemType(newActiveElements[0]) === 'parent') {

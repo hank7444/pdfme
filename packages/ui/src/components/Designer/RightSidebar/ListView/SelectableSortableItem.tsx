@@ -11,7 +11,7 @@ interface Props {
   isSelected: boolean;
   style?: React.CSSProperties;
   onSelect: (id: string, isShiftSelect: boolean) => void;
-  onEdit: (id: string) => void;
+  onEdit: (ids: string[]) => void;
   schema: SchemaForUI;
   schemas: SchemaForUI[];
   onMouseEnter: () => void;
@@ -65,15 +65,24 @@ const SelectableSortableItem = ({
     ? { background: token.colorPrimary, opacity: isSorting || isDragging ? 0.5 : 1 }
     : ({} as React.CSSProperties);
 
-
-  const isChild = !!schema.widgetGroupId && schema.widgetGroupId !== schema.id;
+  const isChild = schema.widgetGroupType === 'child';
 
   return (
     <Item
       ref={setNodeRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      onClick={() => onEdit(schema.id)}
+      onClick={() => {
+        
+        // If the schema is a 'parent' widgetGroup, get the ids of all child schemas.
+        if (schema.type === 'widgetGroup' && schema.widgetGroupType === 'parent') {
+          const activeSchemasIds = schemas.filter(s => s.widgetGroupId === schema.widgetGroupId).map(s => s.id);
+          onEdit(activeSchemasIds);
+          return;
+        }
+
+        onEdit([schema.id]);
+      }}
       icon={thisPlugin && <PluginIcon plugin={thisPlugin} label={pluginLabel} size={20} />}
       value={schema.name}
       status={status}

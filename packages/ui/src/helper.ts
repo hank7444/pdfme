@@ -247,13 +247,51 @@ export const b64toBlob = (base64: string) => {
 const convertSchemasForUI = (template: Template): SchemaForUI[][] => {
   template.schemas.forEach((page, i) => {
     page.forEach((schema) => {
-      schema.id = uuid();
+
+      if (!schema.id) {
+        schema.id = uuid();
+      }
       schema.content = schema.content || '';
     });
   });
 
   return template.schemas as SchemaForUI[][];
 };
+
+
+export const flattenTemplateSchema = (_template: Template) => {
+  const template = cloneDeep(_template);
+  const { basePdf, schemas } = template;
+
+  schemas.map((schema: SchemaForUI[]) => {
+    const insertions: { widgetGroupId: string, widgetGroupChilds: SchemaForUI[] }[] = [];
+
+    Object.values(schema).forEach((value) => {
+      if (value.type === 'widgetGroup' && Array.isArray(value.widgetGroupChilds) && value.widgetGroupChilds.length) { 
+        value.widgetGroupType = 'parent';
+        const widgetGroupChilds = value.widgetGroupChilds.map((schema: SchemaForUI) => {
+          schema.widgetGroupId = value.widgetGroupId;
+          schema.widgetGroupCompId = value.widgetSection.selectSection.widget;
+          schema.widgetGroupType = 'child';
+
+          return schema;
+        });
+        delete value.widgetGroupChilds;
+        insertions.push({ widgetGroupId: value.widgetGroupId, widgetGroupChilds });
+      }
+    });
+
+    insertions.forEach(({ widgetGroupId, widgetGroupChilds }) => {
+      const widgetGroupIdx = schema.findIndex((s) => s.widgetGroupId === widgetGroupId);
+      schema.splice(widgetGroupIdx + 1, 0, ...widgetGroupChilds);
+    });
+
+    return schema;
+  })
+
+  return template;
+}
+
 
 export const template2SchemasList = async (_template: Template) => {
   const template = cloneDeep(_template);
@@ -280,6 +318,7 @@ export const template2SchemasList = async (_template: Template) => {
       ? schemasForUI.concat(new Array(psl - ssl).fill(cloneDeep([])))
       : schemasForUI.slice(0, pageSizes.length)
   ).map((schema, i) => {
+    //const insertions: { widgetGroupId: string, widgetGroupChilds: SchemaForUI[] }[] = [];
     Object.values(schema).forEach((value) => {
       const { width, height } = pageSizes[i];
       const xEdge = value.position.x + value.width;

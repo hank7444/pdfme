@@ -309,10 +309,13 @@ const TemplateEditor = ({
             commitSchemas={commitSchemas}
             removeSchemas={removeSchemas}
             onSortEnd={onSortEnd}
-            onEdit={(id: string) => {
-              const editingElem = document.getElementById(id);
-              editingElem && onEdit([editingElem]);
-              
+            onEdit={(ids: string[]) => {
+              const editingElems = ids
+                .map(id => document.getElementById(id))
+                .filter(element => element !== null);
+
+              editingElems.length && onEdit(editingElems);
+
               /*
               if (editingElem) {
                 const widgetGroupId = editingElem?.getAttribute('data-widgetgroup-id') || '';

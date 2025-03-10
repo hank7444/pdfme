@@ -26,10 +26,17 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           }, 50);
         }
       }
-
+      
       let widgetOptions: Option[] = [];
       const activeSchema = _activeSchema as WidgetGroupSchema;
+
+      if (!activeSchema.widgetGroupId) {
+        activeSchema.widgetGroupId = uuid();
+      }
+
       const activeSchemaId = activeSchema.id as string;
+      const activeSchemaWidgetGroupId = activeSchema.widgetGroupId as string;
+
 
       const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetSection.selectSection;
 
@@ -39,7 +46,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
         changeSchemas([
           { key: 'widgetSection.selectSection.widget', value: newWidgetId, schemaId: activeSchemaId },
-          { key: 'widgetGroupId', value: activeSchemaId, schemaId: activeSchemaId }
+          { key: 'widgetGroupId', value: activeSchemaWidgetGroupId, schemaId: activeSchemaId }
         ]);
 
         // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
@@ -47,9 +54,10 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           activeSchema.widgetSection.selectSection.widget = undefined;
           activeSchema.width = 62.5;
           activeSchema.height = 37.5;
-          const hasChildWidgets = schemas.some((schema: SchemaForUI) => schema.widgetGroupId === activeSchemaId && schema.widgetGroupType === 'child');
+          const hasChildWidgets = schemas.some((schema: SchemaForUI) => 
+            schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
           const newSchemas = schemas.filter((schema: SchemaForUI) => {
-            return !(schema.widgetGroupId === activeSchemaId && !!schema.widgetGroupName);
+            return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetId);
           });
 
           if (hasChildWidgets) {
@@ -64,17 +72,17 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           const { width, height, schemas: widgetSchemas } = widget;
 
           const widgetGroupChildComp = schemas.find((schema: SchemaForUI) => {
-            return schema.widgetGroupId === activeSchemaId && !!schema.widgetGroupName;
+            return schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId;
           });
                     
-          if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupName !== widget.name) {
+          if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupCompId !== widget.id) {
             let newSchemas = cloneDeep(schemas);
 
             newSchemas = newSchemas.filter((schema: SchemaForUI) => {
-              return !(schema.widgetGroupId === activeSchemaId && schema.id !== activeSchemaId);
+              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.id !== activeSchemaId);
             });
 
-            const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchema.id);
+            const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchemaId);
 
             if (widgetGroupSchema) {
               widgetGroupSchema.width = width;
@@ -83,9 +91,9 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
             const newWidgetSchemas: SchemaForUI[] = widgetSchemas.map((schema: Schema, idx: number) => {
               schema.id = uuid();
-              schema.name = `widgetGroup_${activeSchema.id}_${widget.name}_comp_${idx}`;
-              schema.widgetGroupId = activeSchema.id;
-              schema.widgetGroupName = widget.name;
+              schema.name = `widgetGroup_${activeSchemaWidgetGroupId}_${widget.name}_comp_${idx}`;
+              schema.widgetGroupId = activeSchemaWidgetGroupId;
+              schema.widgetGroupCompId = widget.id;
               schema.widgetGroupType = 'child';
 
               // Convert from relative coordinates to absolute coordinates
@@ -160,7 +168,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       width: 62.5,
       height: 37.5,
       widgetGroupId: '',
-      widgetGroupName: '',
+      widgetGroupCompId: '',
       widgetGroupType: 'parent',
       widgetSection: {
         selectSection: {

@@ -8,7 +8,7 @@ import ListView from './ListView/index';
 import DetailView from './DetailView/index';
 
 const Sidebar = (props: SidebarProps) => {
-  const { sidebarOpen, setSidebarOpen, activeElements, schemas, selectoRef } = props;
+  const { sidebarOpen, setSidebarOpen, activeElements, schemas } = props;
   const { token } = theme.useToken();
   const getActiveSchemas = () => {
     return activeElements

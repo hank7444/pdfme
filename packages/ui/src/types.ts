@@ -12,7 +12,7 @@ export type SidebarProps = {
   schemas: SchemaForUI[];
   schemasList: SchemaForUI[][];
   onSortEnd: (sortedSchemas: SchemaForUI[]) => void;
-  onEdit: (id: string) => void;
+  onEdit: (ids: string[]) => void;
   onEditEnd: () => void;
   changeSchemas: ChangeSchemas;
   commitSchemas: CommitSchemas;
