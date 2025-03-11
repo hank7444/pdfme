@@ -7,6 +7,7 @@ import {
   checkDesignerProps,
   checkTemplate,
   PDFME_VERSION,
+  Size,
 } from '@pdfme/common';
 import { BaseUIClass } from './class';
 import { DESTROYED_ERR_MSG } from './constants.js';
@@ -16,11 +17,20 @@ import AppContextProvider from './components/AppContextProvider';
 class Designer extends BaseUIClass {
   private onSaveTemplateCallback?: (template: Template) => void;
   private onChangeTemplateCallback?: (template: Template) => void;
+  private onChangePageCursorCallback?: (pageCursor: number) => void;
+  private onPageSizesChangeCallback?: (pageSizes: Size[]) => void;
   private pageCursor: number = 0;
+  private isEditWidgetMode: boolean = false;
+  private isWidgetDesigner: boolean = false;
+  private designerRef: React.RefObject<DesignerComponent>;
 
   constructor(props: DesignerProps) {
     super(props);
     checkDesignerProps(props);
+
+    this.isEditWidgetMode = props.isEditWidgetMode || false;
+    this.isWidgetDesigner = props.isWidgetDesigner || false;
+    this.designerRef = React.createRef();
   }
 
   public saveTemplate() {
@@ -47,9 +57,28 @@ class Designer extends BaseUIClass {
   public onChangeTemplate(cb: (template: Template) => void) {
     this.onChangeTemplateCallback = cb;
   }
+
+  public onChangePageCursor(cb: (pageCursor: number) => void) {
+    this.onChangePageCursorCallback = cb;
+  }
+
+  public onChangePageSizes(cb: (pageSizes: Size[]) => void) {
+    this.onPageSizesChangeCallback = cb;
+  }
   
   public getPageCursor() {
     return this.pageCursor
+  }
+
+  public setPageCursor(pageCursor: number) {
+    if (this.designerRef.current) {
+      this.designerRef.current.setPageCursor(pageCursor);
+    }
+  }
+
+  public setEditWidgetMode(isEdit: boolean) {
+    this.isEditWidgetMode = isEdit;
+    this.render();
   }
 
   protected render() {
@@ -62,6 +91,7 @@ class Designer extends BaseUIClass {
         options={this.getOptions()}
       >
         <DesignerComponent
+          ref={this.designerRef}
           template={this.template}
           onSaveTemplate={(template) => {
             this.template = template;
@@ -78,9 +108,20 @@ class Designer extends BaseUIClass {
             }
           }}
           onPageCursorChange={(newPageCursor: number) => {
+            if (this.onChangePageCursorCallback) {
+              this.onChangePageCursorCallback(newPageCursor);
+            }
+
             this.pageCursor = newPageCursor
           }}
+          onPageSizesChange={(pageSizes: Size[]) => { 
+            if (this.onPageSizesChangeCallback) {
+              this.onPageSizesChangeCallback(pageSizes);
+            }
+          }}
           size={this.size}
+          isEditWidgetMode={this.isEditWidgetMode}
+          isWidgetDesigner={this.isWidgetDesigner}
         />
       </AppContextProvider>,
       this.domContainer

@@ -14,15 +14,14 @@ import { InternalNamePath, ValidateErrorEntity } from "rc-field-form/es/interfac
 const { Text } = Typography;
 
 type DetailViewProps = Pick<SidebarProps,
-  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'changeSchemas' | 'activeElements' | 'deselectSchema'
+  'size' | 'schemas' | 'schemasList' | 'pageSize' | 'changeSchemas' | 'activeElements' | 'deselectSchema' | 'isEditWidgetMode'
 > & {
   activeSchema: SchemaForUI;
 };
 
 const DetailView = (props: DetailViewProps) => {
   const { token } = theme.useToken();
-
-  const { size, schemasList, changeSchemas, deselectSchema, activeSchema } = props;
+  const { size, schemasList, changeSchemas, deselectSchema, activeSchema, isEditWidgetMode } = props;
   const form = useForm();
 
   const i18n = useContext(I18nContext);
@@ -206,7 +205,7 @@ Check this document: https://pdfme.com/docs/custom-schemas`);
         title: i18n('rotate'),
         type: 'number',
         widget: 'inputNumber',
-        disabled: defaultSchema?.rotate === undefined,
+        disabled: isEditWidgetMode ? true : defaultSchema?.rotate === undefined,
         max: 360,
         props: { min: 0 },
         span: 6,
@@ -215,7 +214,7 @@ Check this document: https://pdfme.com/docs/custom-schemas`);
         title: i18n('opacity'),
         type: 'number',
         widget: 'inputNumber',
-        disabled: defaultSchema?.opacity === undefined,
+        disabled: isEditWidgetMode ? true : defaultSchema?.opacity === undefined,
         props: { step: 0.1, min: 0, max: 1 },
         span: 6,
       },
