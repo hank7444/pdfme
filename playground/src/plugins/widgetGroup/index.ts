@@ -6,8 +6,12 @@ import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } fr
 import { WidgetGroupSchema } from './types';
 
 
+/*
+  widgetGroupId: parent widget group ID, uuid()
+  widgetGroupCompId: widget component ID from the widget dropdown menu
+  widgetGroupType: 'parent' or 'child'
 
-
+*/
 
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   ui: async (arg) => { },
@@ -26,7 +30,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           }, 50);
         }
       }
-      
+
       let widgetOptions: Option[] = [];
       const activeSchema = _activeSchema as WidgetGroupSchema;
 
@@ -38,26 +42,29 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       const activeSchemaWidgetGroupId = activeSchema.widgetGroupId as string;
 
 
-      const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetSection.selectSection;
+      const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetGroupSection;
 
       if (widgetCategory) {
         widgetOptions = widgetCategoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
         const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : null
 
         changeSchemas([
-          { key: 'widgetSection.selectSection.widget', value: newWidgetId, schemaId: activeSchemaId },
+          { key: 'widgetGroupSection.widget', value: newWidgetId, schemaId: activeSchemaId },
           { key: 'widgetGroupId', value: activeSchemaWidgetGroupId, schemaId: activeSchemaId }
         ]);
-
+        
         // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
         if (!newWidgetId) {
-          activeSchema.widgetSection.selectSection.widget = undefined;
+
+          activeSchema.widgetGroupSection.widget = undefined;
           activeSchema.width = 62.5;
           activeSchema.height = 37.5;
           const hasChildWidgets = schemas.some((schema: SchemaForUI) => 
             schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
+
+          // Filter out all the child components of this widget group from the schemas
           const newSchemas = schemas.filter((schema: SchemaForUI) => {
-            return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetId);
+            return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
           });
 
           if (hasChildWidgets) {
@@ -66,7 +73,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
           commitSchemas(newSchemas);
           updateSelectoActiveElements();
-
+          
         } else {
           const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
           const { width, height, schemas: widgetSchemas } = widget;
@@ -118,42 +125,33 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           required: true,
           disabled: true,
         },
-        widgetSection: {
+        widgetGroupSection: {
           type: 'object',
           properties: {
-            selectSection: {
-              //title: "title",
-              //description: "description",
-              column: 1,
-              type: 'object',
-              widget: 'card',
-              properties: {
-                widgetCategory: {
-                  title: 'Widget Category',
-                  type: 'string',
-                  widget: 'select',
-                  //required: true,
-                  default: '',
-                  props: {
-                    options: widgetCategoryOptions,
-                    placeholder: 'Please select category...',
-                  },
-                },
-                widget: {
-                  title: 'Widget',
-                  type: 'string',
-                  widget: 'select',
-                  //required: true,
-                  default: '',
-                  props: {
-                    options: widgetOptions,
-                    placeholder: 'Please select widget...',
-                  },
-                },
+            widgetCategory: {
+              title: 'Widget Category',
+              type: 'string',
+              widget: 'select',
+              //required: true,
+              default: '',
+              props: {
+                options: widgetCategoryOptions,
+                placeholder: 'Please select category...',
               },
-            }
-          }
-        }
+            },
+            widget: {
+              title: 'Widget',
+              type: 'string',
+              widget: 'select',
+              //required: true,
+              default: '',
+              props: {
+                options: widgetOptions,
+                placeholder: 'Please select widget...',
+              },
+            },
+          },
+        },
       };
 
       return schema;
@@ -170,11 +168,9 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       widgetGroupId: '',
       widgetGroupCompId: '',
       widgetGroupType: 'parent',
-      widgetSection: {
-        selectSection: {
-          widgetCategory: undefined,
-          widget: undefined,
-        },
+      widgetGroupSection: {
+        widgetCategory: undefined,
+        widget: undefined,
       },
       relPosition: {
         x: 0,

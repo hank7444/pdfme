@@ -271,7 +271,7 @@ export const flattenTemplateSchema = (_template: Template) => {
         value.widgetGroupType = 'parent';
         const widgetGroupChilds = value.widgetGroupChilds.map((schema: SchemaForUI) => {
           schema.widgetGroupId = value.widgetGroupId;
-          schema.widgetGroupCompId = value.widgetSection.selectSection.widget;
+          schema.widgetGroupCompId = value.widgetGroupSection.widget;
           schema.widgetGroupType = 'child';
 
           return schema;

@@ -5,9 +5,7 @@ export interface WidgetGroupSchema extends Schema {
   widgetGroupCompId: string;
   widgetGroupType: string;
   widgetSection: {
-    selectSection: {
-      widgetCategory?: string;
-      widget?: string;
-    };
+    widgetCategory?: string;
+    widget?: string;
   };
 }
