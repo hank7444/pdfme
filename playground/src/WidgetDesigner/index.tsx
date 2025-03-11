@@ -30,6 +30,7 @@ function DesignerApp() {
   const [action, setAction] = useState('new');
   const [widgets, setWidgets] = useState<Widget[]>([]);
 
+
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
 
   const buildDesigner = useCallback(async () => {
@@ -519,20 +520,17 @@ function DesignerApp() {
         fontSize: '14px',
       }}>
         <button
-          className="px-2 py-1 border rounded hover:bg-gray-100"
-          style={{
-            backgroundColor: finalIsDisabledSaveBtn ? 'grey' : 'inherit',
-            color: finalIsDisabledSaveBtn ? 'lightgrey' : 'inherit',
-            cursor: finalIsDisabledSaveBtn ? 'not-allowed' : 'pointer',
-          }}
+          type="button"
+          className="px-2 py-1 border rounded hover:bg-gray-100 active:bg-sky-700 disabled:bg-gray-500"
           disabled={finalIsDisabledSaveBtn}
           onClick={() => onSaveWidget()}
         >
           Save Widget
         </button>
         <button
+          type="button"
           style={{ marginLeft: '10px' }}
-          className="px-2 py-1 border rounded hover:bg-gray-100"
+          className="px-2 py-1 border rounded hover:bg-gray-100 active:bg-sky-700"
           onClick={() => onViewWidgetData()}
         >
           View Widget Data
