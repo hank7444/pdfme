@@ -10,6 +10,7 @@ import {
   getBlankTemplate,
   getPlugins,
   uuid,
+  readFile,
   DEFAULT_WIDGET_WIDTH,
   DEFAULT_WIDGET_HEIGHT,
 } from "../helper";
@@ -380,6 +381,21 @@ function DesignerApp() {
     setAction(action);
   };
 
+    const onChangeBasePDF = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target && e.target.files) {
+        readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
+          if (designer.current) {
+            designer.current.updateTemplate(
+              Object.assign(cloneDeep(designer.current.getTemplate()), {
+                basePdf,
+              })
+            );
+          }
+        });
+      }
+    };
+  
+
   useEffect(() => {
     if (designerRef.current) {
       buildDesigner();
@@ -504,6 +520,21 @@ function DesignerApp() {
     },
   ];
 
+  const navItems2: NavItem[] = [
+    {
+      label: "Change BasePDF",
+      content: (
+        <input
+          type="file"
+          accept="application/pdf"
+          className="w-full text-sm border"
+          onChange={onChangeBasePDF}
+        />
+      ),
+    },
+  ];
+  
+
   if (action === 'update') {
     navItems.splice(1, 0, widgetNavItem);
   }
@@ -511,6 +542,7 @@ function DesignerApp() {
   return (
     <>
       <NavBar items={navItems} />
+      <NavBar items={navItems2} />
       <div ref={designerRef} className="flex-1 w-full" />
 
       <div style={{
