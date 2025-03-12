@@ -1,58 +1,51 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, Schema } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
-import { Widget } from '../types';
+import { Widget, BasePdf, WidgetEditInfo } from './types';
 import {
   getFontsData,
-  getTemplateById,
-  getTemplatePadding,
   getBlankTemplate,
   getPlugins,
   uuid,
   readFile,
   DEFAULT_WIDGET_WIDTH,
   DEFAULT_WIDGET_HEIGHT,
+  TEMPLATE_HEIGHT,
 } from "../helper";
 import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
+import { getTemplatePadding } from './helper';
 import defaultWidgets from "./defaultWidgets";
 
 
 function DesignerApp() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
+  const widgetEditInfo = useRef<WidgetEditInfo>({
+    schemas: [],
+    position: { x: 0, y: 0 },
+    width: 100,
+    height: 60,
+  });
 
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
-  const [widgetWidth, setWidgetWidth] = useState<number>(DEFAULT_WIDGET_WIDTH);
-  const [widgetHeight, setWidgetHeight] = useState<number>(DEFAULT_WIDGET_HEIGHT);
   const [widgetName, setWidgetName] = useState<string>('');
-  const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
   const [action, setAction] = useState('new');
+  const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
+  const [isEditWidgetMode, setIsEditWidgetMode] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<Widget[]>([]);
+
 
 
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
 
-  const buildDesigner = useCallback(async () => {
+  const buildDesigner = useCallback(() => {
     if (!designerRef.current) return;
     try {
-      let template: Template = getBlankTemplate(widgetWidth, widgetHeight);
-
-      const templateIdFromQuery = searchParams.get("template");
-      searchParams.delete("template");
-      setSearchParams(searchParams, { replace: true });
+      let template: Template = getBlankTemplate({ isFullPadding: true });
       const templateFromLocal = localStorage.getItem("template");
 
-      if (templateIdFromQuery) {
-        const templateJson = await getTemplateById(templateIdFromQuery);
-        checkTemplate(templateJson);
-        template = templateJson;
-
-        if (!templateFromLocal || window.confirm("Would you like to overwrite the locally saved template?")) {
-          localStorage.setItem("template", JSON.stringify(templateJson));
-        }
-      } else if (templateFromLocal) {
+      if (templateFromLocal) {
         const templateJson = JSON.parse(templateFromLocal) as Template;
         checkTemplate(templateJson);
         template = templateJson;
@@ -78,6 +71,7 @@ function DesignerApp() {
           },
         },
         plugins: getPlugins(),
+        isEditWidgetMode: false,
       });
       setIsDisabledSaveBtn(!template.schemas[0].length);
     } catch {
@@ -104,7 +98,7 @@ function DesignerApp() {
 
   const onResizeWidget = () => {
     if (designer.current) {
-      const template: Template = getBlankTemplate(widgetWidth, widgetHeight);
+      const template: Template = getBlankTemplate();
       const newTemplate = Object.assign(cloneDeep(designer.current.getTemplate()), {
         basePdf: template.basePdf,
       });
@@ -132,7 +126,7 @@ function DesignerApp() {
       }
 
       const id: string = selectedWidgetId || uuid();
-      const { widthPadding, heightPadding } = getTemplatePadding(widgetWidth, widgetHeight);
+      const paddings = getTemplatePadding(0, 0, { x: 0, y: 0 });
       const schemas = template?.schemas[0].map((schema) => {
         const name = schema.name.indexOf(id) === -1
           ? `${id}_${schema.name}`
@@ -141,8 +135,8 @@ function DesignerApp() {
         const newSchema = Object.assign(cloneDeep(schema), {
           name,
           position: {
-            x: schema.position.x - widthPadding,
-            y: schema.position.y - heightPadding,
+            x: schema.position.x - paddings[0],
+            y: schema.position.y - paddings[1],
           },
         });
 
@@ -152,8 +146,8 @@ function DesignerApp() {
       const widget = {
         id,
         name: widgetName,
-        width: widgetWidth,
-        height: widgetHeight,
+        width: 0,
+        height: 0,
         schemas,
       };
 
@@ -271,11 +265,9 @@ function DesignerApp() {
     localStorage.setItem("widgets", JSON.stringify(defaultWidgets));
     getWidgetsFromLocalStorage();
     setSelectedWidgetId('');
-    setWidgetWidth(DEFAULT_WIDGET_WIDTH);
-    setWidgetHeight(DEFAULT_WIDGET_HEIGHT);
 
     if (designer.current) {
-      const template: Template = getBlankTemplate(DEFAULT_WIDGET_WIDTH, DEFAULT_WIDGET_HEIGHT);
+      const template: Template = getBlankTemplate();
       template.schemas = [[]];
       designer.current.updateTemplate(template);
     }
@@ -306,14 +298,14 @@ function DesignerApp() {
     }
 
     // Check if any schema exceeds the widget boundaries.
-    const { widthPadding, heightPadding } = getTemplatePadding(widgetWidth, widgetHeight);
+    const paddings = getTemplatePadding(0, 0, { x: 0, y: 0 });
     const hasAnySchemas = !!template?.schemas[0].length
     const hasAnyOutOfBoundsSchemas = template?.schemas[0].some((schema) => {
       const layoutRect = {
-        x: widthPadding,
-        y: heightPadding,
-        width: widgetWidth,
-        height: widgetHeight,
+        x: paddings[0],
+        y: paddings[1],
+        width: 0,
+        height: 0,
       };
 
       const schemaRect = {
@@ -328,7 +320,7 @@ function DesignerApp() {
 
     const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;
     setIsDisabledSaveBtn(isDisabled);
-  }, [widgetWidth, widgetHeight]);
+  }, []);
 
   const handleWidgetSelectOnChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const id = event.target.value;
@@ -336,23 +328,22 @@ function DesignerApp() {
 
     if (selectedWidget) {
       const { width, height, name, schemas } = selectedWidget;
-      const { widthPadding, heightPadding } = getTemplatePadding(width, height);
+      const paddings = getTemplatePadding(width, height, { x: 0, y: 0 });
 
       setSelectedWidgetId(id);
       setWidgetName(name);
-      setWidgetWidth(width);
-      setWidgetHeight(height);
 
       // Delay calling updateTemplate() to ensure that the width and height states have been updated already."
       setTimeout(() => {
         const newSchemas = schemas.map((schema) => {
-          schema.position.x += widthPadding;
-          schema.position.y += heightPadding;
+          schema.position.x += paddings[0];
+          schema.position.y += paddings[1];
+          schema.isWidget=true;
           return schema;
         });
 
         if (designer.current) {
-          const template: Template = getBlankTemplate(width, height);
+          const template: Template = getBlankTemplate();
           template.schemas = [[...newSchemas]];
           designer.current.updateTemplate(template);
         }
@@ -368,11 +359,9 @@ function DesignerApp() {
       setWidgetName('');
       setSelectedWidgetId('');
       setWidgetName('');
-      setWidgetWidth(DEFAULT_WIDGET_WIDTH);
-      setWidgetHeight(DEFAULT_WIDGET_HEIGHT);
 
       if (designer.current) {
-        const template: Template = getBlankTemplate(DEFAULT_WIDGET_WIDTH, DEFAULT_WIDGET_HEIGHT);
+        const template: Template = getBlankTemplate();
         designer.current.updateTemplate(template);
       }
     }
@@ -406,6 +395,75 @@ function DesignerApp() {
       }
     }
   }, [designerRef, buildDesigner]);
+
+  useEffect(() => {
+    if (designer.current) {
+      const template = designer.current.getTemplate();
+      const basePdf = template.basePdf as BasePdf;
+      let schemas = template.schemas[0];
+
+      //const editWidgetRec = schemas.find(s => s.name === 'editWidgetRec');
+
+      if (isEditWidgetMode) {
+
+        
+        
+        const { schemas: editSchemas, position, width, height } = widgetEditInfo.current;
+
+        
+        // backup schemas first
+        if (schemas.length) {
+          widgetEditInfo.current.schemas = cloneDeep(schemas);
+        }
+
+        // if isEditWidgetMode = true, remove padding
+        basePdf.padding = [0, 0, 0, 0];
+
+        // if schemas is empty array, add an default rectangle to the schemas array.
+        template.schemas[0] = [{
+          name: 'editWidgetRec',
+          type: 'rectangle',
+          position,
+          width,
+          height,
+          rotate: 0,
+          opacity: 1,
+          borderWidth: 1,
+          borderColor: '#00BFFF',
+          color: '',
+          readOnly: true,
+          required: false,
+          content: '',
+        }];
+
+        console.log('template: ', template);
+          
+        designer.current.updateTemplate(template);
+      } else {
+        const editWidgetRec = schemas.find(s => s.name === 'editWidgetRec');
+
+        
+        // caculcate padding
+        if (editWidgetRec) {
+          const { schemas: editSchemas } = widgetEditInfo.current;
+          const { width, height, position } = editWidgetRec;
+
+          widgetEditInfo.current = {
+            ...widgetEditInfo.current,
+            position,
+            width,
+            height,
+          };
+
+          basePdf.padding = getTemplatePadding(width, height, position);
+          template.schemas[0] = editSchemas.length ? editSchemas : [] 
+          designer.current.updateTemplate(template);
+        }
+      }
+    
+      designer.current.setEditWidgetMode(isEditWidgetMode);  
+    }
+  }, [isEditWidgetMode])
 
   useEffect(() => {
     if (designer.current) {
@@ -471,34 +529,6 @@ function DesignerApp() {
       ),
     },
     {
-      label: "Widget Size",
-      content: (
-        <>
-          <span style={{ marginRight: "10px" }}>Width:&nbsp;
-            <input type="text" min={20} max={210} value={widgetWidth || ''} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
-              onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetWidth(+e.target.value); }}
-              onKeyUp={handleKeyDown}
-            />
-          </span>
-          <span>Height:&nbsp;
-            <input type="text" min={20} max={297} value={widgetHeight || ''} style={{ width: "80px", border: "1px solid black", padding: "0 3px" }}
-              onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.select(); }}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetHeight(+e.target.value); }}
-              onKeyUp={handleKeyDown}
-            />
-          </span>
-          <button
-            className="px-2 py-1 border rounded hover:bg-gray-100"
-            style={{ marginLeft: '10px' }}
-            onClick={onResizeWidget}
-          >
-            Resize Widget
-          </button>
-        </>
-      ),
-    },
-    {
       label: "",
       content: (
         <>
@@ -530,6 +560,23 @@ function DesignerApp() {
           className="w-full text-sm border"
           onChange={onChangeBasePDF}
         />
+      ),
+    },
+    {
+      label: "",
+      content: (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <input 
+            type="checkbox" 
+            id="isEditWidgetMode"
+            name="isEditWidgetMode" 
+            checked={isEditWidgetMode} 
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+              setIsEditWidgetMode(e.target.checked);
+            }}
+          />
+          <label htmlFor="isEditWidgetMode" style={{ marginLeft: 5 }}>Enter Widget Size and Position Edit Mode</label>
+        </div>
       ),
     },
   ];

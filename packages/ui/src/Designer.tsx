@@ -17,6 +17,7 @@ class Designer extends BaseUIClass {
   private onSaveTemplateCallback?: (template: Template) => void;
   private onChangeTemplateCallback?: (template: Template) => void;
   private pageCursor: number = 0;
+  private isEditWidgetMode: boolean = false;
 
   constructor(props: DesignerProps) {
     super(props);
@@ -52,8 +53,14 @@ class Designer extends BaseUIClass {
     return this.pageCursor
   }
 
+  public setEditWidgetMode(isEdit: boolean) {
+    this.isEditWidgetMode = isEdit;
+    this.render();
+  }
+
   protected render() {
     if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
+
     ReactDOM.render(
       <AppContextProvider
         lang={this.getLang()}
@@ -81,6 +88,7 @@ class Designer extends BaseUIClass {
             this.pageCursor = newPageCursor
           }}
           size={this.size}
+          isEditWidgetMode={this.isEditWidgetMode}
         />
       </AppContextProvider>,
       this.domContainer

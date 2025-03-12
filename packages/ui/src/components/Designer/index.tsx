@@ -44,11 +44,13 @@ const scaleDragPosAdjustment = (adjustment: number, scale: number): number => {
 const TemplateEditor = ({
   template,
   size,
+  isEditWidgetMode,
   onSaveTemplate,
   onChangeTemplate,
   onPageCursorChange,
 }: Omit<DesignerProps, 'domContainer'> & {
   size: Size;
+  isEditWidgetMode: boolean
   onSaveTemplate: (t: Template) => void;
   onChangeTemplate: (t: Template) => void;
 } & {
@@ -244,9 +246,13 @@ const TemplateEditor = ({
   if (error) {
     return <ErrorScreen size={size} error={error} />;
   }
+
+  /*
   const pageManipulation = isBlankPdf(template.basePdf)
     ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
     : {};
+  */
+  const pageManipulation = {};
 
   return (
     <Root size={size} scale={scale}>
@@ -272,11 +278,13 @@ const TemplateEditor = ({
         }}
         onDragStart={onEditEnd}
       >
-        <LeftSidebar
-          height={canvasRef.current ? canvasRef.current.clientHeight : 0}
-          scale={scale}
-          basePdf={template.basePdf}
-        />
+        {!isEditWidgetMode &&
+          <LeftSidebar
+            height={canvasRef.current ? canvasRef.current.clientHeight : 0}
+            scale={scale}
+            basePdf={template.basePdf}
+          />
+        }
 
         <div style={{ position: 'absolute', width: canvasWidth, marginLeft: LEFT_SIDEBAR_WIDTH }}>
           <CtlBar
@@ -332,6 +340,7 @@ const TemplateEditor = ({
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
             sidebarOpen={sidebarOpen}
+            isEditWidgetMode={isEditWidgetMode}
             onEdit={onEdit}
           />
         </div>

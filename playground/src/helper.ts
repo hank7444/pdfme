@@ -188,22 +188,13 @@ export const TEMPLATE_HEIGHT = 297
 export const DEFAULT_WIDGET_WIDTH = 100;
 export const DEFAULT_WIDGET_HEIGHT = 60;
 
-export const getTemplatePadding = (width?: number, height?: number) => {
-  const widthPadding = width ? (TEMPLATE_WIDTH - width) / 2 : 10;
-  const heightPadding = height ? (TEMPLATE_HEIGHT - height) / 2 : 20;
-
-  return { widthPadding, heightPadding };
-};
-
-export const getBlankTemplate = (width?: number, height?: number) => {
-  const { widthPadding, heightPadding } = getTemplatePadding(width, height);
-
+export const getBlankTemplate = ({ isFullPadding = false }) => {
   return ({
     schemas: [{}],
     basePdf: {
       width: TEMPLATE_WIDTH,
       height: TEMPLATE_HEIGHT,
-      padding: [heightPadding, widthPadding, heightPadding, widthPadding],
+      padding: isFullPadding ? [TEMPLATE_HEIGHT / 2, 0, TEMPLATE_HEIGHT / 2, 0] : [20, 10, 20, 10],
     },
   } as Template);
 };

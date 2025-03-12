@@ -92,6 +92,7 @@ interface Props {
   removeSchemas: (ids: string[]) => void;
   paperRefs: MutableRefObject<HTMLDivElement[]>;
   sidebarOpen: boolean;
+  isEditWidgetMode: boolean;
 }
 
 const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
@@ -111,6 +112,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     onChangeHoveringSchemaId,
     paperRefs,
     sidebarOpen,
+    isEditWidgetMode,
   } = props;
   const { token } = theme.useToken();
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -394,7 +396,11 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             {!editing && activeElements.length > 0 && pageCursor === index && (
               <DeleteButton activeElements={activeElements} />
             )}
-            <Padding basePdf={basePdf} />
+            
+            {!isEditWidgetMode && 
+              <Padding basePdf={basePdf} />
+            }
+
             <StaticSchema
               template={{ schemas: schemasList, basePdf }}
               input={Object.fromEntries(

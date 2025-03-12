@@ -190,6 +190,7 @@ const HTMLElementSchema: z.ZodSchema<HTMLElement> = z.any().refine((v) => v inst
 export const UIProps = CommonProps.extend({
   domContainer: HTMLElementSchema,
   options: UIOptions.optional(),
+  isEditWidgetMode: z.boolean().optional(),
 });
 
 export const PreviewProps = UIProps.extend({ inputs: Inputs }).strict();
