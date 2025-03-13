@@ -188,13 +188,13 @@ export const TEMPLATE_HEIGHT = 297
 export const DEFAULT_WIDGET_WIDTH = 100;
 export const DEFAULT_WIDGET_HEIGHT = 60;
 
-export const getBlankTemplate = ({ isFullPadding = false }) => {
+export const getBlankTemplate = () => {
   return ({
     schemas: [{}],
     basePdf: {
       width: TEMPLATE_WIDTH,
       height: TEMPLATE_HEIGHT,
-      padding: isFullPadding ? [TEMPLATE_HEIGHT / 2, 0, TEMPLATE_HEIGHT / 2, 0] : [20, 10, 20, 10],
+      padding: [20, 10, 20, 10],
     },
   } as Template);
 };

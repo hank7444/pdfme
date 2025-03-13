@@ -1,31 +1,31 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
 import { cloneDeep, Template, checkTemplate, Lang, Schema } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
-import { Widget, BasePdf, WidgetEditInfo } from './types';
 import {
   getFontsData,
   getBlankTemplate,
   getPlugins,
   uuid,
   readFile,
-  DEFAULT_WIDGET_WIDTH,
-  DEFAULT_WIDGET_HEIGHT,
-  TEMPLATE_HEIGHT,
 } from "../helper";
 import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
-import { getTemplatePadding } from './helper';
+import { Widget, BasePdf, WidgetEditInfo } from './types';
+import { 
+  DEFAULT_WIDGET_EDIT_REC_SIZE,
+  DEFAULT_PADDING, 
+  getTemplatePadding, 
+  isRectangleBOutOfBounds,
+} from './helper';
 import defaultWidgets from "./defaultWidgets";
 
 
 function DesignerApp() {
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
-  const widgetEditInfo = useRef<WidgetEditInfo>({
+  const widgetEditInfoRef = useRef<WidgetEditInfo>({
     schemas: [],
     position: { x: 0, y: 0 },
-    width: 100,
-    height: 60,
+    ...DEFAULT_WIDGET_EDIT_REC_SIZE,
   });
 
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
@@ -36,13 +36,15 @@ function DesignerApp() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
 
 
-
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
+
 
   const buildDesigner = useCallback(() => {
     if (!designerRef.current) return;
     try {
-      let template: Template = getBlankTemplate({ isFullPadding: true });
+      let template: Template = getBlankTemplate();
+      (template.basePdf as BasePdf).padding = DEFAULT_PADDING;
+
       const templateFromLocal = localStorage.getItem("template");
 
       if (templateFromLocal) {
@@ -96,37 +98,29 @@ function DesignerApp() {
     }
   }
 
-  const onResizeWidget = () => {
-    if (designer.current) {
-      const template: Template = getBlankTemplate();
-      const newTemplate = Object.assign(cloneDeep(designer.current.getTemplate()), {
-        basePdf: template.basePdf,
-      });
-      designer.current.updateTemplate(newTemplate);
 
-      onChangeTemplate(newTemplate);
-    }
-  };
 
   const onSaveWidget = () => {
 
     if (designer.current) {
+      const widgetEditInfo = widgetEditInfoRef.current;
       const template: Template = cloneDeep(designer.current.getTemplate());
       let widgets: Widget[] = [];
 
+      
       try {
         const widgetsFromLocal = localStorage.getItem("widgets");
 
         if (widgetsFromLocal) {
           widgets = JSON.parse(widgetsFromLocal);
-          setWidgets(widgets);
+          //setWidgets(widgets);
         }
       } catch (e) {
         // do nothing here
       }
+      
 
       const id: string = selectedWidgetId || uuid();
-      const paddings = getTemplatePadding(0, 0, { x: 0, y: 0 });
       const schemas = template?.schemas[0].map((schema) => {
         const name = schema.name.indexOf(id) === -1
           ? `${id}_${schema.name}`
@@ -135,8 +129,8 @@ function DesignerApp() {
         const newSchema = Object.assign(cloneDeep(schema), {
           name,
           position: {
-            x: schema.position.x - paddings[0],
-            y: schema.position.y - paddings[1],
+            x: schema.position.x - widgetEditInfo.position.x,
+            y: schema.position.y - widgetEditInfo.position.y,
           },
         });
 
@@ -146,8 +140,10 @@ function DesignerApp() {
       const widget = {
         id,
         name: widgetName,
-        width: 0,
-        height: 0,
+        width: widgetEditInfo.width,
+        height: widgetEditInfo.height,
+        position: widgetEditInfo.position,
+        basePdf: '',
         schemas,
       };
 
@@ -273,52 +269,17 @@ function DesignerApp() {
     }
   };
 
-  interface Rect {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }
 
 
   const onChangeTemplate = useCallback(async (template?: Template | undefined) => {
-    const isRectangleBOutOfBounds = (rectA: Rect, rectB: Rect): boolean => {
-      const { x: xA, y: yA, width: widthA, height: heightA } = rectA;
-      const { x: xB, y: yB, width: widthB, height: heightB } = rectB;
-
-      const rightA = xA + widthA;
-      const bottomA = yA + heightA;
-      const rightB = xB + widthB;
-      const bottomB = yB + heightB;
-
-      if (xB < xA || rightB > rightA || yB < yA || bottomB > bottomA) {
-        return true;
-      }
-      return false;
-    }
 
     // Check if any schema exceeds the widget boundaries.
-    const paddings = getTemplatePadding(0, 0, { x: 0, y: 0 });
     const hasAnySchemas = !!template?.schemas[0].length
     const hasAnyOutOfBoundsSchemas = template?.schemas[0].some((schema) => {
-      const layoutRect = {
-        x: paddings[0],
-        y: paddings[1],
-        width: 0,
-        height: 0,
-      };
-
-      const schemaRect = {
-        x: schema.position.x,
-        y: schema.position.y,
-        width: schema.width,
-        height: schema.height,
-      };
-
-      return isRectangleBOutOfBounds(layoutRect, schemaRect);
+      return isRectangleBOutOfBounds(widgetEditInfoRef.current, schema);
     }) || false;
 
-    const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;
+    const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;    
     setIsDisabledSaveBtn(isDisabled);
   }, []);
 
@@ -327,24 +288,30 @@ function DesignerApp() {
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
 
     if (selectedWidget) {
-      const { width, height, name, schemas } = selectedWidget;
-      const paddings = getTemplatePadding(width, height, { x: 0, y: 0 });
+      const { width, height, position, name, schemas } = selectedWidget;
+      const padding = getTemplatePadding(width, height, position);
 
+      widgetEditInfoRef.current = {
+        width,
+        height,
+        position,
+        schemas,
+      };
       setSelectedWidgetId(id);
       setWidgetName(name);
 
       // Delay calling updateTemplate() to ensure that the width and height states have been updated already."
       setTimeout(() => {
         const newSchemas = schemas.map((schema) => {
-          schema.position.x += paddings[0];
-          schema.position.y += paddings[1];
-          schema.isWidget=true;
+          schema.position.x += position.x;
+          schema.position.y += position.y;
           return schema;
         });
 
         if (designer.current) {
           const template: Template = getBlankTemplate();
           template.schemas = [[...newSchemas]];
+          (template.basePdf as BasePdf).padding = padding;
           designer.current.updateTemplate(template);
         }
       }, 0);
@@ -361,7 +328,7 @@ function DesignerApp() {
       setWidgetName('');
 
       if (designer.current) {
-        const template: Template = getBlankTemplate();
+        const template: Template = getBlankTemplate({});
         designer.current.updateTemplate(template);
       }
     }
@@ -400,20 +367,22 @@ function DesignerApp() {
     if (designer.current) {
       const template = designer.current.getTemplate();
       const basePdf = template.basePdf as BasePdf;
-      let schemas = template.schemas[0];
+      const schemas = template.schemas[0];
 
-      //const editWidgetRec = schemas.find(s => s.name === 'editWidgetRec');
 
       if (isEditWidgetMode) {
+        const { position, width, height } = widgetEditInfoRef.current;
 
-        
-        
-        const { schemas: editSchemas, position, width, height } = widgetEditInfo.current;
-
-        
-        // backup schemas first
         if (schemas.length) {
-          widgetEditInfo.current.schemas = cloneDeep(schemas);
+
+          // Update the position of each schema based on editWidgetRec.position.
+          widgetEditInfoRef.current.schemas = cloneDeep(schemas).map((schema) => {
+            schema.position = {
+              x: schema.position.x - position.x,
+              y: schema.position.y - position.y,
+            };
+            return schema;
+          });
         }
 
         // if isEditWidgetMode = true, remove padding
@@ -436,31 +405,38 @@ function DesignerApp() {
           content: '',
         }];
 
-        console.log('template: ', template);
-          
         designer.current.updateTemplate(template);
       } else {
         const editWidgetRec = schemas.find(s => s.name === 'editWidgetRec');
 
-        
         // caculcate padding
         if (editWidgetRec) {
-          const { schemas: editSchemas } = widgetEditInfo.current;
+          const { schemas: editSchemas } = widgetEditInfoRef.current;
           const { width, height, position } = editWidgetRec;
 
-          widgetEditInfo.current = {
-            ...widgetEditInfo.current,
+          widgetEditInfoRef.current = {
+            ...widgetEditInfoRef.current,
             position,
             width,
             height,
           };
 
           basePdf.padding = getTemplatePadding(width, height, position);
-          template.schemas[0] = editSchemas.length ? editSchemas : [] 
+          
+          // Update the position of each schema based on editWidgetRec.position.
+          if (editSchemas.length) {
+            editSchemas.map((schema) => {
+              schema.position = {
+                x: schema.position.x + position.x,
+                y: schema.position.y + position.y,
+              };
+              return schema;
+            });
+          }
+          template.schemas[0] = editSchemas.length ? editSchemas : [];
           designer.current.updateTemplate(template);
         }
       }
-    
       designer.current.setEditWidgetMode(isEditWidgetMode);  
     }
   }, [isEditWidgetMode])
@@ -497,14 +473,6 @@ function DesignerApp() {
         </button>
       </>
     ),
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      if (document.activeElement === e.target) {
-        onResizeWidget();
-      }
-    }
   };
 
   const navItems: NavItem[] = [
