@@ -8,6 +8,7 @@ import {
   pt2mm,
   Template,
   BasePdf,
+  EditWidgetInfo,
   SchemaForUI,
   Size,
   isBlankPdf,
@@ -298,7 +299,7 @@ export const template2SchemasList = async (_template: Template) => {
   });
 };
 
-export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf): Template => ({
+export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf, editWidgetInfo?: EditWidgetInfo): Template => ({
   schemas: cloneDeep(schemasList).map((page) =>
     page.map((schema) => {
       // @ts-ignore
@@ -307,6 +308,7 @@ export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: Base
     })
   ),
   basePdf,
+  ...(editWidgetInfo ? { editWidgetInfo } : {}),
 });
 
 export const getUniqueSchemaName = (arg: {

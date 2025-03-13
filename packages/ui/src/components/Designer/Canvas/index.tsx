@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import { theme, Button } from 'antd';
 import { OnDrag, OnResize, OnClick, OnRotate } from 'react-moveable';
-import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, replacePlaceholders } from '@pdfme/common';
+import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, EditWidgetInfo, replacePlaceholders } from '@pdfme/common';
 import { PluginsRegistry } from '../../../contexts';
 import { X } from 'lucide-react';
 import { RULER_HEIGHT, RIGHT_SIDEBAR_WIDTH } from '../../../constants';
@@ -77,6 +77,7 @@ interface GuidesInterface {
 
 interface Props {
   basePdf: BasePdf;
+  editWidgetInfo?: EditWidgetInfo; 
   height: number;
   hoveringSchemaId: string | null;
   onChangeHoveringSchemaId: (id: string | null) => void;
@@ -93,11 +94,13 @@ interface Props {
   paperRefs: MutableRefObject<HTMLDivElement[]>;
   sidebarOpen: boolean;
   isEditWidgetMode: boolean;
+  isWidgetDesigner: boolean;
 }
 
 const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   const {
     basePdf,
+    editWidgetInfo,
     pageCursor,
     scale,
     backgrounds,
@@ -113,6 +116,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     paperRefs,
     sidebarOpen,
     isEditWidgetMode,
+    isWidgetDesigner,
   } = props;
   const { token } = theme.useToken();
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -398,7 +402,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
             )}
             
             {!isEditWidgetMode && 
-              <Padding basePdf={basePdf} />
+              <Padding isWidgetDesigner={isWidgetDesigner} basePdf={basePdf} editWidgetInfo={editWidgetInfo} />
             }
 
             <StaticSchema

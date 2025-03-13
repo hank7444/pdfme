@@ -14,6 +14,7 @@ import {
   SchemaForUI,
   BasePdf,
   BlankPdf,
+  EditWidgetInfo,
   CommonOptions,
   Template,
   GeneratorOptions,
@@ -177,6 +178,7 @@ export type Font = z.infer<typeof Font>;
 export type ColorType = z.infer<typeof ColorType>;
 export type BasePdf = z.infer<typeof BasePdf>;
 export type BlankPdf = z.infer<typeof BlankPdf>;
+export type EditWidgetInfo = z.infer<typeof EditWidgetInfo>;
 export type Template = z.infer<typeof Template>;
 export type CommonOptions = z.infer<typeof CommonOptions>;
 export type GeneratorOptions = z.infer<typeof GeneratorOptions>;

@@ -1,9 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cloneDeep, Template, checkTemplate, Lang, Schema } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, Schema, EditWidgetInfo } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
-  getBlankTemplate,
   getPlugins,
   uuid,
   readFile,
@@ -12,7 +11,7 @@ import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
 import { Widget, BasePdf, WidgetEditInfo } from './types';
 import { 
   DEFAULT_WIDGET_EDIT_REC_SIZE,
-  DEFAULT_PADDING, 
+  getBlankTemplate,
   getTemplatePadding, 
   isRectangleBOutOfBounds,
 } from './helper';
@@ -43,8 +42,6 @@ function DesignerApp() {
     if (!designerRef.current) return;
     try {
       let template: Template = getBlankTemplate();
-      (template.basePdf as BasePdf).padding = DEFAULT_PADDING;
-
       const templateFromLocal = localStorage.getItem("template");
 
       if (templateFromLocal) {
@@ -74,6 +71,7 @@ function DesignerApp() {
         },
         plugins: getPlugins(),
         isEditWidgetMode: false,
+        isWidgetDesigner: true,
       });
       setIsDisabledSaveBtn(!template.schemas[0].length);
     } catch {
@@ -273,6 +271,8 @@ function DesignerApp() {
 
   const onChangeTemplate = useCallback(async (template?: Template | undefined) => {
 
+    console.log('#### onChangeTemplate: ', template);
+
     // Check if any schema exceeds the widget boundaries.
     const hasAnySchemas = !!template?.schemas[0].length
     const hasAnyOutOfBoundsSchemas = template?.schemas[0].some((schema) => {
@@ -283,7 +283,7 @@ function DesignerApp() {
     setIsDisabledSaveBtn(isDisabled);
   }, []);
 
-  const handleWidgetSelectOnChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const OnChangeWidgetSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const id = event.target.value;
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
 
@@ -311,24 +311,23 @@ function DesignerApp() {
         if (designer.current) {
           const template: Template = getBlankTemplate();
           template.schemas = [[...newSchemas]];
-          (template.basePdf as BasePdf).padding = padding;
+          template.editWidgetInfo!.padding = padding;
+
           designer.current.updateTemplate(template);
         }
       }, 0);
     }
   };
 
-  const handleActionRadioOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const OnChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const action = event.target.value;
 
     if (action === 'new') {
       setSelectedWidgetId('');
       setWidgetName('');
-      setSelectedWidgetId('');
-      setWidgetName('');
 
       if (designer.current) {
-        const template: Template = getBlankTemplate({});
+        const template: Template = getBlankTemplate();
         designer.current.updateTemplate(template);
       }
     }
@@ -337,19 +336,20 @@ function DesignerApp() {
     setAction(action);
   };
 
-    const onChangeBasePDF = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target && e.target.files) {
-        readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
-          if (designer.current) {
-            designer.current.updateTemplate(
-              Object.assign(cloneDeep(designer.current.getTemplate()), {
-                basePdf,
-              })
-            );
-          }
-        });
-      }
-    };
+
+  const onChangeBasePDF = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target && e.target.files) {
+      readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
+        if (designer.current) {
+          designer.current.updateTemplate(
+            Object.assign(cloneDeep(designer.current.getTemplate()), {
+              basePdf,
+            })
+          );
+        }
+      });
+    }
+  };
   
 
   useEffect(() => {
@@ -366,8 +366,10 @@ function DesignerApp() {
   useEffect(() => {
     if (designer.current) {
       const template = designer.current.getTemplate();
-      const basePdf = template.basePdf as BasePdf;
+      const templateEditWidgetInfo = template.editWidgetInfo as EditWidgetInfo;
       const schemas = template.schemas[0];
+
+      console.log('@@@@@@ template: ', template);
 
 
       if (isEditWidgetMode) {
@@ -386,7 +388,7 @@ function DesignerApp() {
         }
 
         // if isEditWidgetMode = true, remove padding
-        basePdf.padding = [0, 0, 0, 0];
+        templateEditWidgetInfo.padding = [0, 0, 0, 0];
 
         // if schemas is empty array, add an default rectangle to the schemas array.
         template.schemas[0] = [{
@@ -421,7 +423,7 @@ function DesignerApp() {
             height,
           };
 
-          basePdf.padding = getTemplatePadding(width, height, position);
+          templateEditWidgetInfo.padding = getTemplatePadding(width, height, position);
           
           // Update the position of each schema based on editWidgetRec.position.
           if (editSchemas.length) {
@@ -455,7 +457,7 @@ function DesignerApp() {
           className="w-full border rounded px-2 py-1"
           style={{ width: '200px' }}
           value={selectedWidgetId || ''}
-          onChange={handleWidgetSelectOnChange}
+          onChange={OnChangeWidgetSelect}
         >
           <option value="" disabled>Please select widget...</option>
           {widgets.map((t) => (
@@ -483,14 +485,14 @@ function DesignerApp() {
           <label>
             <input type="radio" id="new" name="action" value="new"
               checked={action === 'new'}
-              onChange={handleActionRadioOnChange} />
+              onChange={OnChangeActionRadio} />
             <span style={{ marginLeft: '5px' }}>New Widget</span>
           </label>
 
           <label style={{ marginLeft: '10px' }}>
             <input type="radio" id="update" name="action" value="update"
               checked={action === 'update'}
-              onChange={handleActionRadioOnChange} />
+              onChange={OnChangeActionRadio} />
             <span style={{ marginLeft: '5px' }}>Update Widget</span>
           </label>
         </div>

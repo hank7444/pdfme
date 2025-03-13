@@ -45,12 +45,14 @@ const TemplateEditor = ({
   template,
   size,
   isEditWidgetMode,
+  isWidgetDesigner,
   onSaveTemplate,
   onChangeTemplate,
   onPageCursorChange,
 }: Omit<DesignerProps, 'domContainer'> & {
   size: Size;
   isEditWidgetMode: boolean
+  isWidgetDesigner: boolean
   onSaveTemplate: (t: Template) => void;
   onChangeTemplate: (t: Template) => void;
 } & {
@@ -106,7 +108,7 @@ const TemplateEditor = ({
       const _schemasList = cloneDeep(schemasList);
       _schemasList[pageCursor] = newSchemas;
       setSchemasList(_schemasList);
-      onChangeTemplate(schemasList2template(_schemasList, template.basePdf));
+      onChangeTemplate(schemasList2template(_schemasList, template.basePdf, template.editWidgetInfo));
     },
     [template, schemasList, pageCursor, onChangeTemplate]
   );
@@ -322,11 +324,12 @@ const TemplateEditor = ({
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
           />
-
+        
           <Canvas
             ref={canvasRef}
             paperRefs={paperRefs}
             basePdf={template.basePdf}
+            editWidgetInfo={template.editWidgetInfo}
             hoveringSchemaId={hoveringSchemaId}
             onChangeHoveringSchemaId={onChangeHoveringSchemaId}
             height={size.height - RULER_HEIGHT * ZOOM}
@@ -341,6 +344,7 @@ const TemplateEditor = ({
             removeSchemas={removeSchemas}
             sidebarOpen={sidebarOpen}
             isEditWidgetMode={isEditWidgetMode}
+            isWidgetDesigner={isWidgetDesigner}
             onEdit={onEdit}
           />
         </div>

@@ -18,10 +18,14 @@ class Designer extends BaseUIClass {
   private onChangeTemplateCallback?: (template: Template) => void;
   private pageCursor: number = 0;
   private isEditWidgetMode: boolean = false;
+  private isWidgetDesigner: boolean = false;
 
   constructor(props: DesignerProps) {
     super(props);
     checkDesignerProps(props);
+
+    this.isEditWidgetMode = props.isEditWidgetMode || false;
+    this.isWidgetDesigner = props.isWidgetDesigner || false;
   }
 
   public saveTemplate() {
@@ -55,6 +59,9 @@ class Designer extends BaseUIClass {
 
   public setEditWidgetMode(isEdit: boolean) {
     this.isEditWidgetMode = isEdit;
+
+    
+
     this.render();
   }
 
@@ -89,6 +96,7 @@ class Designer extends BaseUIClass {
           }}
           size={this.size}
           isEditWidgetMode={this.isEditWidgetMode}
+          isWidgetDesigner={this.isWidgetDesigner}
         />
       </AppContextProvider>,
       this.domContainer
