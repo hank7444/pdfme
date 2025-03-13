@@ -22,6 +22,7 @@ class Designer extends BaseUIClass {
   private pageCursor: number = 0;
   private isEditWidgetMode: boolean = false;
   private isWidgetDesigner: boolean = false;
+  private designerRef: React.RefObject<DesignerComponent>;
 
   constructor(props: DesignerProps) {
     super(props);
@@ -29,6 +30,7 @@ class Designer extends BaseUIClass {
 
     this.isEditWidgetMode = props.isEditWidgetMode || false;
     this.isWidgetDesigner = props.isWidgetDesigner || false;
+    this.designerRef = React.createRef();
   }
 
   public saveTemplate() {
@@ -68,11 +70,14 @@ class Designer extends BaseUIClass {
     return this.pageCursor
   }
 
+  public setPageCursor(pageCursor: number) {
+    if (this.designerRef.current) {
+      console.log('@@@@ this.designerRef.current', this.designerRef.current);
+    }
+  }
+
   public setEditWidgetMode(isEdit: boolean) {
     this.isEditWidgetMode = isEdit;
-
-    
-
     this.render();
   }
 
@@ -87,6 +92,7 @@ class Designer extends BaseUIClass {
         options={this.getOptions()}
       >
         <DesignerComponent
+          ref={this.designerRef}
           template={this.template}
           onSaveTemplate={(template) => {
             this.template = template;

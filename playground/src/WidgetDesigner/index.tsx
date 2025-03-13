@@ -81,6 +81,12 @@ function DesignerApp() {
         isWidgetDesigner: true,
       });
       setIsDisabledSaveBtn(!template.schemas[pageCursor].length);
+
+      setTimeout(() => {
+        if (designer.current) {
+          designer.current.setPageCursor(1);
+        }
+      }, 3000);
     } catch {
       localStorage.removeItem("template");
     }

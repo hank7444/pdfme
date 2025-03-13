@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useContext, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
   cloneDeep,
   ZOOM,
@@ -41,7 +41,7 @@ const scaleDragPosAdjustment = (adjustment: number, scale: number): number => {
   return 0;
 }
 
-const TemplateEditor = ({
+const TemplateEditor = forwardRef(({
   template,
   size,
   isEditWidgetMode,
@@ -60,7 +60,7 @@ const TemplateEditor = ({
   onChangeTemplate: (t: Template) => void;
   onPageCursorChange?: (newPageCursor: number) => void;
   onPageSizesChange?: (pageSizes: Size[]) => void;
-}) => {
+}, ref) => {
   const past = useRef<SchemaForUI[][]>([]);
   const future = useRef<SchemaForUI[][]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -77,6 +77,16 @@ const TemplateEditor = ({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [prevTemplate, setPrevTemplate] = useState<Template | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    setPageCursor(pageCursor: number) {
+      setPageCursor(pageCursor);
+      const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
+      if (canvasRef.current) {
+        canvasRef.current.scrollTop = scrollTop;
+      }
+    },
+  }));
 
   const { backgrounds, pageSizes, scale, error, refresh } =
     useUIPreProcessor({ template, size, zoomLevel });
@@ -392,6 +402,6 @@ const TemplateEditor = ({
       </DndContext>
     </Root>
   );
-};
+});
 
 export default TemplateEditor;
