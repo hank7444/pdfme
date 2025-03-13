@@ -178,14 +178,20 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let rightPadding = 0;
     let bottomPadding = 0;
     let leftPadding = 0;
+    let padding;
 
-    if (isBlankPdf(basePdf)) {
-      const [t, r, b, l] = basePdf.padding;
-      topPadding = t * ZOOM;
-      rightPadding = r;
-      bottomPadding = b;
-      leftPadding = l * ZOOM;
+    if (isWidgetDesigner) {
+      padding = isEditWidgetMode ? [0, 0, 0, 0] : editWidgetInfo.padding;
+    } else if (isBlankPdf(basePdf)) {
+      padding = isWidgetDesigner ? editWidgetInfo.padding : basePdf.padding;
     }
+
+    const [t, r, b, l] = padding || [0, 0, 0, 0];
+
+    topPadding = t * ZOOM;
+    rightPadding = r;
+    bottomPadding = b;
+    leftPadding = l * ZOOM;
 
     if (actualTop + targetHeight > pageHeight - bottomPadding) {
       target.style.top = `${(pageHeight - targetHeight - bottomPadding) * ZOOM}px`;
@@ -272,14 +278,20 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let rightPadding = 0;
     let bottomPadding = 0;
     let leftPadding = 0;
+    let padding;
 
-    if (isBlankPdf(basePdf)) {
-      const [t, r, b, l] = basePdf.padding;
-      topPadding = t * ZOOM;
-      rightPadding = mm2px(r);
-      bottomPadding = mm2px(b);
-      leftPadding = l * ZOOM;
+    if (isWidgetDesigner) {
+      padding = isEditWidgetMode ? [0, 0, 0, 0] : editWidgetInfo.padding;
+    } else if (isBlankPdf(basePdf)) {
+      padding = basePdf.padding;
     }
+    
+    const [t, r, b, l] = padding || [0, 0, 0, 0];
+    
+    topPadding = t * ZOOM;
+    rightPadding = mm2px(r);
+    bottomPadding = mm2px(b);
+    leftPadding = l * ZOOM;
 
     const pageWidth = mm2px(pageSizes[pageCursor].width);
     const pageHeight = mm2px(pageSizes[pageCursor].height);

@@ -28,6 +28,7 @@ const Paper = (props: {
   const font = useContext(FontContext);
   const rulerHeight = hasRulers ? RULER_HEIGHT : 0;
 
+
   if (pageSizes.length !== backgrounds.length || pageSizes.length !== schemasList.length) {
     return null;
   }

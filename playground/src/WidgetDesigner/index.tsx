@@ -1,11 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cloneDeep, Template, checkTemplate, Lang, Schema, EditWidgetInfo } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, Schema, EditWidgetInfo, Size } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
   getPlugins,
   uuid,
   readFile,
+  DEFAULT_TEMPLATE_WIDTH,
+  DEFAULT_TEMPLATE_HEIGHT,
 } from "../helper";
 import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
 import { Widget, BasePdf, WidgetEditInfo } from './types';
@@ -25,6 +27,9 @@ function DesignerApp() {
     schemas: [],
     position: { x: 0, y: 0 },
     ...DEFAULT_WIDGET_EDIT_REC_SIZE,
+    pageCursor: 0,
+    pageSizes: [{ width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT }],
+    pageSize: { width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT },
   });
 
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
@@ -270,12 +275,11 @@ function DesignerApp() {
 
 
   const onChangeTemplate = useCallback(async (template?: Template | undefined) => {
-
-    console.log('#### onChangeTemplate: ', template);
+    const { pageCursor } = widgetEditInfoRef.current;
 
     // Check if any schema exceeds the widget boundaries.
-    const hasAnySchemas = !!template?.schemas[0].length
-    const hasAnyOutOfBoundsSchemas = template?.schemas[0].some((schema) => {
+    const hasAnySchemas = !!template?.schemas[pageCursor].length
+    const hasAnyOutOfBoundsSchemas = template?.schemas[pageCursor].some((schema) => {
       return isRectangleBOutOfBounds(widgetEditInfoRef.current, schema);
     }) || false;
 
@@ -283,19 +287,91 @@ function DesignerApp() {
     setIsDisabledSaveBtn(isDisabled);
   }, []);
 
+  const onChangePageCursor = useCallback((pageCursor: number) => {
+    const { pageCursor: currentPageCursor, pageSizes, width, height, position } = widgetEditInfoRef.current;
+    widgetEditInfoRef.current.pageCursor = pageCursor;
+    let pageSize = widgetEditInfoRef.current.pageSize;
+
+    console.log('onChangePageCursor before pageSize: ', pageSize, pageSizes);
+
+    if (pageSizes.length) {
+      pageSize = pageSizes[pageCursor];
+      widgetEditInfoRef.current.pageSize = pageSize;
+    }
+
+    console.log('onChangePageCursor after pageSize: ', pageSize);
+
+    if (designer.current) {
+      const template = designer.current.getTemplate();
+      const schemas = template.schemas;
+
+      // move schemas
+      for (let i = 0; i <= pageCursor; i++) {
+        if (!Array.isArray(schemas[i])) {
+          schemas[i] = [];
+        }
+      }
+
+      const schema = cloneDeep(schemas[currentPageCursor]);
+      schemas[currentPageCursor] = [];
+      schemas[pageCursor] = schema;
+
+      console.log('start move schema: before');
+
+      if (!pageSize) {
+        return;
+      }
+
+      console.log('start move schema: after');
+
+      // update padding for the page
+      const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+      template.editWidgetInfo!.padding = padding;
+      designer.current.updateTemplate(template);
+    }
+  }, [])
+
+  const onChangePageSizes = useCallback((pageSizes: Size[]) => {
+
+    if (!pageSizes.length) {
+      return;
+    }
+    
+    const { pageSize: currentPageSize, position } = widgetEditInfoRef.current;
+    const pageSize = pageSizes[widgetEditInfoRef.current.pageCursor];
+
+    widgetEditInfoRef.current.pageSizes = pageSizes;
+    widgetEditInfoRef.current.pageSize = pageSize;
+
+    if (pageSize && currentPageSize && currentPageSize.width === pageSize.width && currentPageSize.height === pageSize.height) {
+      return;
+    }
+
+    if (designer.current) {
+      const template = cloneDeep(designer.current.getTemplate());
+      const editWidgetInfo = template.editWidgetInfo as EditWidgetInfo;
+      const padding = getTemplatePadding(pageSize.width, pageSize.height, editWidgetInfo.width, editWidgetInfo.height, position);
+      template.editWidgetInfo!.padding = padding;
+      designer.current.updateTemplate(template);
+    }
+  }, [])
+
   const OnChangeWidgetSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const id = event.target.value;
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
 
     if (selectedWidget) {
       const { width, height, position, name, schemas } = selectedWidget;
-      const padding = getTemplatePadding(width, height, position);
+      const padding = getTemplatePadding(undefined, undefined, width, height, position);
 
       widgetEditInfoRef.current = {
         width,
         height,
         position,
         schemas,
+        pageCursor: 0,
+        pageSize: { width: 0, height: 0 },
+        pageSizes: [],
       };
       setSelectedWidgetId(id);
       setWidgetName(name);
@@ -312,7 +388,6 @@ function DesignerApp() {
           const template: Template = getBlankTemplate();
           template.schemas = [[...newSchemas]];
           template.editWidgetInfo!.padding = padding;
-
           designer.current.updateTemplate(template);
         }
       }, 0);
@@ -351,7 +426,6 @@ function DesignerApp() {
     }
   };
   
-
   useEffect(() => {
     if (designerRef.current) {
       buildDesigner();
@@ -365,18 +439,31 @@ function DesignerApp() {
 
   useEffect(() => {
     if (designer.current) {
+      designer.current.onChangeTemplate(onChangeTemplate);
+    }
+  }, [onChangeTemplate])
+
+  useEffect(() => {
+    if (designer.current) {
+      designer.current.onChangePageCursor(onChangePageCursor);
+    }
+  }, [onChangePageCursor])
+
+  useEffect(() => {
+    if (designer.current) {
+      designer.current.onChangePageSizes(onChangePageSizes);
+    }
+  }, [onChangePageSizes])
+
+  useEffect(() => {
+    if (designer.current) {
       const template = designer.current.getTemplate();
       const templateEditWidgetInfo = template.editWidgetInfo as EditWidgetInfo;
-      const schemas = template.schemas[0];
-
-      console.log('@@@@@@ template: ', template);
-
+      const { position, width, height, pageCursor } = widgetEditInfoRef.current;
+      const schemas = template.schemas[pageCursor];
 
       if (isEditWidgetMode) {
-        const { position, width, height } = widgetEditInfoRef.current;
-
         if (schemas.length) {
-
           // Update the position of each schema based on editWidgetRec.position.
           widgetEditInfoRef.current.schemas = cloneDeep(schemas).map((schema) => {
             schema.position = {
@@ -384,14 +471,11 @@ function DesignerApp() {
               y: schema.position.y - position.y,
             };
             return schema;
-          });
+          });          
         }
 
-        // if isEditWidgetMode = true, remove padding
-        templateEditWidgetInfo.padding = [0, 0, 0, 0];
-
         // if schemas is empty array, add an default rectangle to the schemas array.
-        template.schemas[0] = [{
+        template.schemas[pageCursor] = [{
           name: 'editWidgetRec',
           type: 'rectangle',
           position,
@@ -413,7 +497,7 @@ function DesignerApp() {
 
         // caculcate padding
         if (editWidgetRec) {
-          const { schemas: editSchemas } = widgetEditInfoRef.current;
+          const { schemas: editSchemas, pageSize, pageCursor } = widgetEditInfoRef.current;
           const { width, height, position } = editWidgetRec;
 
           widgetEditInfoRef.current = {
@@ -422,8 +506,7 @@ function DesignerApp() {
             width,
             height,
           };
-
-          templateEditWidgetInfo.padding = getTemplatePadding(width, height, position);
+          templateEditWidgetInfo.padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
           
           // Update the position of each schema based on editWidgetRec.position.
           if (editSchemas.length) {
@@ -435,7 +518,7 @@ function DesignerApp() {
               return schema;
             });
           }
-          template.schemas[0] = editSchemas.length ? editSchemas : [];
+          template.schemas[pageCursor] = editSchemas.length ? editSchemas : [];
           designer.current.updateTemplate(template);
         }
       }
@@ -443,11 +526,6 @@ function DesignerApp() {
     }
   }, [isEditWidgetMode])
 
-  useEffect(() => {
-    if (designer.current) {
-      designer.current.onChangeTemplate(onChangeTemplate);
-    }
-  }, [onChangeTemplate])
 
   const widgetNavItem = {
     label: "Widget List",

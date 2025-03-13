@@ -1,5 +1,5 @@
 import { Template } from '@pdfme/common';
-import { TEMPLATE_WIDTH, TEMPLATE_HEIGHT } from '../helper';
+import { DEFAULT_TEMPLATE_WIDTH, DEFAULT_TEMPLATE_HEIGHT } from '../helper';
 import { Rect, Position } from './types';
 
 export const DEFAULT_WIDGET_EDIT_REC_SIZE = {
@@ -9,8 +9,8 @@ export const DEFAULT_WIDGET_EDIT_REC_SIZE = {
 
 export const DEFAULT_PADDING = [
   0, 
-  TEMPLATE_WIDTH - DEFAULT_WIDGET_EDIT_REC_SIZE.width, 
-  TEMPLATE_HEIGHT - DEFAULT_WIDGET_EDIT_REC_SIZE.height, 
+  DEFAULT_TEMPLATE_WIDTH - DEFAULT_WIDGET_EDIT_REC_SIZE.width, 
+  DEFAULT_TEMPLATE_HEIGHT - DEFAULT_WIDGET_EDIT_REC_SIZE.height, 
   0,
 ];
 
@@ -18,8 +18,8 @@ export const getBlankTemplate = () => {
   return ({
     schemas: [{}],
     basePdf: {
-      width: TEMPLATE_WIDTH,
-      height: TEMPLATE_HEIGHT,
+      width: DEFAULT_TEMPLATE_WIDTH,
+      height: DEFAULT_TEMPLATE_HEIGHT,
       padding: [0, 0, 0, 0],
     },
     editWidgetInfo: {
@@ -30,10 +30,16 @@ export const getBlankTemplate = () => {
   } as Template);
 };
 
-export const getTemplatePadding = (width: number, height: number, position: Position): [number, number, number, number] => {
+export const getTemplatePadding = (
+  templateWidth: number | undefined = DEFAULT_TEMPLATE_WIDTH, 
+  templateHeight: number | undefined = DEFAULT_TEMPLATE_HEIGHT,
+  width: number, 
+  height: number, 
+  position: Position
+): [number, number, number, number] => {
   const top = position.y;
-  const right = TEMPLATE_WIDTH - position.x - width;
-  const bottom = TEMPLATE_HEIGHT - position.y - height;
+  const right = templateWidth - position.x - width;
+  const bottom = templateHeight - position.y - height;
   const left = position.x;
 
   return [top, right, bottom, left];

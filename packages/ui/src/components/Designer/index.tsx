@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useContext, useCallback } from 'react';
 import {
   cloneDeep,
   ZOOM,
@@ -49,15 +49,17 @@ const TemplateEditor = ({
   onSaveTemplate,
   onChangeTemplate,
   onPageCursorChange,
+  onPageSizesChange,
 }: Omit<DesignerProps, 'domContainer'> & {
   size: Size;
-  isEditWidgetMode: boolean
-  isWidgetDesigner: boolean
+  isEditWidgetMode: boolean;
+  isWidgetDesigner: boolean;
   onSaveTemplate: (t: Template) => void;
   onChangeTemplate: (t: Template) => void;
 } & {
-  onChangeTemplate: (t: Template) => void
-  onPageCursorChange: (newPageCursor: number) => void
+  onChangeTemplate: (t: Template) => void;
+  onPageCursorChange?: (newPageCursor: number) => void;
+  onPageSizesChange?: (pageSizes: Size[]) => void;
 }) => {
   const past = useRef<SchemaForUI[][]>([]);
   const future = useRef<SchemaForUI[][]>([]);
@@ -89,6 +91,12 @@ const TemplateEditor = ({
     setHoveringSchemaId(null);
   };
 
+  useEffect(() => {
+    if (onPageSizesChange) {
+      onPageSizesChange(pageSizes);
+    }
+  }, [pageSizes]);
+
   useScrollPageCursor({
     ref: canvasRef,
     pageSizes,
@@ -96,8 +104,11 @@ const TemplateEditor = ({
     pageCursor,
     onChangePageCursor: (p) => {
       setPageCursor(p);
-      onPageCursorChange(p)
       onEditEnd();
+
+      if (onPageCursorChange) {
+        onPageCursorChange(p);
+      }
     },
   });
 
@@ -156,6 +167,11 @@ const TemplateEditor = ({
     const sl = await template2SchemasList(newTemplate);
     setSchemasList(sl);
     onEditEnd();
+
+    if (isWidgetDesigner) {
+      return;
+    }
+    
     setPageCursor(0);
     if (canvasRef.current?.scroll) {
       canvasRef.current.scroll({ top: 0, behavior: 'smooth' });
@@ -163,7 +179,12 @@ const TemplateEditor = ({
   }, []);
 
   const addSchema = (defaultSchema: Schema) => {
-    const [paddingTop, paddingRight, paddingBottom, paddingLeft] = isBlankPdf(template.basePdf) ? template.basePdf.padding : [0, 0, 0, 0];
+    const [paddingTop, paddingRight, paddingBottom, paddingLeft] = isWidgetDesigner
+      ? template.editWidgetInfo.padding
+      : isBlankPdf(template.basePdf)
+      ? template.basePdf.padding
+      : [0, 0, 0, 0];
+  
     const pageSize = pageSizes[pageCursor];
 
     const newSchemaName = (prefix: string) => {
@@ -249,12 +270,9 @@ const TemplateEditor = ({
     return <ErrorScreen size={size} error={error} />;
   }
 
-  /*
-  const pageManipulation = isBlankPdf(template.basePdf)
-    ? { addPageAfter: handleAddPageAfter, removePage: handleRemovePage }
-    : {};
-  */
-  const pageManipulation = {};
+  const pageManipulation = isWidgetDesigner || !isBlankPdf(template.basePdf)
+    ? {}
+    : { addPageAfter: handleAddPageAfter, removePage: handleRemovePage };
 
   return (
     <Root size={size} scale={scale}>
@@ -301,6 +319,7 @@ const TemplateEditor = ({
             }}
             zoomLevel={zoomLevel}
             setZoomLevel={setZoomLevel}
+            onPageCursorChange={onPageCursorChange}
             {...pageManipulation}
           />
 

@@ -183,8 +183,8 @@ export const isJsonString = (str: string) => {
   return true;
 };
 
-export const TEMPLATE_WIDTH = 210;
-export const TEMPLATE_HEIGHT = 297
+export const DEFAULT_TEMPLATE_WIDTH = 210;
+export const DEFAULT_TEMPLATE_HEIGHT = 297
 export const DEFAULT_WIDGET_WIDTH = 100;
 export const DEFAULT_WIDGET_HEIGHT = 60;
 
@@ -192,8 +192,8 @@ export const getBlankTemplate = () => {
   return ({
     schemas: [{}],
     basePdf: {
-      width: TEMPLATE_WIDTH,
-      height: TEMPLATE_HEIGHT,
+      width: DEFAULT_TEMPLATE_WIDTH,
+      height: DEFAULT_TEMPLATE_HEIGHT,
       padding: [20, 10, 20, 10],
     },
   } as Template);

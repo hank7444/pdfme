@@ -1,4 +1,4 @@
-import { Schema } from '@pdfme/common';
+import { Schema, Size } from '@pdfme/common';
 
 
 export interface Position {
@@ -33,4 +33,7 @@ export interface WidgetEditInfo {
   width: number;                      // editRect width
   height: number;                     // editRect height
   position: { x: number, y: number }; // editRect position
+  pageCursor: number; // current page cursor
+  pageSizes: Size[],
+  pageSize: Size;
 }
