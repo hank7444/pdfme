@@ -18,8 +18,12 @@ export interface Widget {
   width: number;
   height: number;
   schemas: Schema[];
-  position: Position;
-  basePdf: string;
+  editInfo: {
+    position: Position;
+    pageCursor: number;
+    pageSizes: Size[];
+    basePdf: string;
+  }
 }
 
 export interface BasePdf {
@@ -33,7 +37,8 @@ export interface WidgetEditInfo {
   width: number;                      // editRect width
   height: number;                     // editRect height
   position: { x: number, y: number }; // editRect position
-  pageCursor: number; // current page cursor
+  pageCursor: number;
   pageSizes: Size[],
   pageSize: Size;
+  basePdf: string;
 }

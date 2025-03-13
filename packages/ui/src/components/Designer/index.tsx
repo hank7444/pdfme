@@ -168,9 +168,31 @@ const TemplateEditor = ({
     setSchemasList(sl);
     onEditEnd();
 
+    
     if (isWidgetDesigner) {
+
+      /*
+      const newPageCursor = newTemplate.editWidgetInfo!.pageCursor;
+
+      console.log('newPageCursor', newPageCursor);
+      console.log('pageCursor', pageCursor);
+      console.log('pageSizes', pageSizes);
+      console.log('newTemplate.editWidgetInfo', newTemplate.editWidgetInfo);
+
+      if (pageCursor !== newPageCursor) { 
+        
+
+        if (canvasRef.current) {
+          const scrollTop = getPagesScrollTopByIndex(pageSizes, newPageCursor, scale);
+          canvasRef.current.scrollTop = scrollTop;
+        }
+
+        setPageCursor(newPageCursor);
+      }
+      */
       return;
     }
+    
     
     setPageCursor(0);
     if (canvasRef.current?.scroll) {
@@ -180,7 +202,7 @@ const TemplateEditor = ({
 
   const addSchema = (defaultSchema: Schema) => {
     const [paddingTop, paddingRight, paddingBottom, paddingLeft] = isWidgetDesigner
-      ? template.editWidgetInfo.padding
+      ? template.editWidgetInfo!.padding
       : isBlankPdf(template.basePdf)
       ? template.basePdf.padding
       : [0, 0, 0, 0];

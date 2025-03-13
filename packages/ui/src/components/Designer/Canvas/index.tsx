@@ -281,7 +281,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let padding;
 
     if (isWidgetDesigner) {
-      padding = isEditWidgetMode ? [0, 0, 0, 0] : editWidgetInfo.padding;
+      padding = isEditWidgetMode ? [0, 0, 0, 0] : editWidgetInfo!.padding;
     } else if (isBlankPdf(basePdf)) {
       padding = basePdf.padding;
     }
@@ -409,7 +409,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         hasRulers={true}
         renderPaper={({ index, paperSize }) => (
           <>
-            {!editing && activeElements.length > 0 && pageCursor === index && (
+            {!isEditWidgetMode && !editing && activeElements.length > 0 && pageCursor === index && (
               <DeleteButton activeElements={activeElements} />
             )}
             

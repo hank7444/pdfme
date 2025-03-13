@@ -26,6 +26,7 @@ export const getBlankTemplate = () => {
       width: 100,
       height: 60,
       padding: DEFAULT_PADDING,
+      pageCursor: 0,
     },
   } as Template);
 };

@@ -125,6 +125,7 @@ export const EditWidgetInfo = z.object({
   width: z.number(),
   height: z.number(),
   padding: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  pageCursor: z.number(),
 });
 
 const CustomPdf = z.union([z.string(), ArrayBufferSchema, Uint8ArraySchema]);

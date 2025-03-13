@@ -30,6 +30,7 @@ function DesignerApp() {
     pageCursor: 0,
     pageSizes: [{ width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT }],
     pageSize: { width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT },
+    basePdf: '',
   });
 
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
@@ -48,6 +49,7 @@ function DesignerApp() {
     try {
       let template: Template = getBlankTemplate();
       const templateFromLocal = localStorage.getItem("template");
+      const { pageCursor } = widgetEditInfoRef.current;
 
       if (templateFromLocal) {
         const templateJson = JSON.parse(templateFromLocal) as Template;
@@ -78,7 +80,7 @@ function DesignerApp() {
         isEditWidgetMode: false,
         isWidgetDesigner: true,
       });
-      setIsDisabledSaveBtn(!template.schemas[0].length);
+      setIsDisabledSaveBtn(!template.schemas[pageCursor].length);
     } catch {
       localStorage.removeItem("template");
     }
@@ -110,7 +112,6 @@ function DesignerApp() {
       const template: Template = cloneDeep(designer.current.getTemplate());
       let widgets: Widget[] = [];
 
-      
       try {
         const widgetsFromLocal = localStorage.getItem("widgets");
 
@@ -122,9 +123,8 @@ function DesignerApp() {
         // do nothing here
       }
       
-
       const id: string = selectedWidgetId || uuid();
-      const schemas = template?.schemas[0].map((schema) => {
+      const schemas = template?.schemas[widgetEditInfo.pageCursor].map((schema) => {
         const name = schema.name.indexOf(id) === -1
           ? `${id}_${schema.name}`
           : schema.name; localStorage.setItem("widgets", JSON.stringify(widgets));
@@ -145,8 +145,12 @@ function DesignerApp() {
         name: widgetName,
         width: widgetEditInfo.width,
         height: widgetEditInfo.height,
-        position: widgetEditInfo.position,
-        basePdf: '',
+        editInfo: {
+          position: widgetEditInfo.position,
+          pageCursor: widgetEditInfo.pageCursor,
+          pageSizes: widgetEditInfo.pageSizes,
+          basePdf: widgetEditInfo.basePdf,
+        },
         schemas,
       };
 
@@ -292,14 +296,10 @@ function DesignerApp() {
     widgetEditInfoRef.current.pageCursor = pageCursor;
     let pageSize = widgetEditInfoRef.current.pageSize;
 
-    console.log('onChangePageCursor before pageSize: ', pageSize, pageSizes);
-
     if (pageSizes.length) {
       pageSize = pageSizes[pageCursor];
       widgetEditInfoRef.current.pageSize = pageSize;
     }
-
-    console.log('onChangePageCursor after pageSize: ', pageSize);
 
     if (designer.current) {
       const template = designer.current.getTemplate();
@@ -316,17 +316,14 @@ function DesignerApp() {
       schemas[currentPageCursor] = [];
       schemas[pageCursor] = schema;
 
-      console.log('start move schema: before');
-
       if (!pageSize) {
         return;
       }
 
-      console.log('start move schema: after');
-
       // update padding for the page
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
       template.editWidgetInfo!.padding = padding;
+      template.editWidgetInfo!.pageCursor = pageCursor;
       designer.current.updateTemplate(template);
     }
   }, [])
@@ -337,7 +334,7 @@ function DesignerApp() {
       return;
     }
     
-    const { pageSize: currentPageSize, position } = widgetEditInfoRef.current;
+    const { pageCursor, pageSize: currentPageSize, position } = widgetEditInfoRef.current;
     const pageSize = pageSizes[widgetEditInfoRef.current.pageCursor];
 
     widgetEditInfoRef.current.pageSizes = pageSizes;
@@ -352,6 +349,7 @@ function DesignerApp() {
       const editWidgetInfo = template.editWidgetInfo as EditWidgetInfo;
       const padding = getTemplatePadding(pageSize.width, pageSize.height, editWidgetInfo.width, editWidgetInfo.height, position);
       template.editWidgetInfo!.padding = padding;
+      template.editWidgetInfo!.pageCursor = pageCursor;
       designer.current.updateTemplate(template);
     }
   }, [])
@@ -360,25 +358,29 @@ function DesignerApp() {
     const id = event.target.value;
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
 
+    console.log('@@@ selectedWidget', selectedWidget);
+
     if (selectedWidget) {
-      const { width, height, position, name, schemas } = selectedWidget;
-      const padding = getTemplatePadding(undefined, undefined, width, height, position);
+      const { width, height, name, schemas, editInfo: { basePdf, position, pageCursor, pageSizes } } = selectedWidget;
+      const pageSize = pageSizes[pageCursor];
+      const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
 
       widgetEditInfoRef.current = {
         width,
         height,
         position,
         schemas,
-        pageCursor: 0,
-        pageSize: { width: 0, height: 0 },
-        pageSizes: [],
+        pageCursor,
+        pageSize,
+        pageSizes,
+        basePdf,
       };
       setSelectedWidgetId(id);
       setWidgetName(name);
 
       // Delay calling updateTemplate() to ensure that the width and height states have been updated already."
       setTimeout(() => {
-        const newSchemas = schemas.map((schema) => {
+        const newWidgetSchemas = schemas.map((schema) => {
           schema.position.x += position.x;
           schema.position.y += position.y;
           return schema;
@@ -386,8 +388,14 @@ function DesignerApp() {
 
         if (designer.current) {
           const template: Template = getBlankTemplate();
-          template.schemas = [[...newSchemas]];
+          const newSchemas: Schema[][] = new Array(3).fill([]).map(() => []);
+
+          newSchemas[pageCursor] = newWidgetSchemas;
+          template.schemas = newSchemas;
           template.editWidgetInfo!.padding = padding;
+          template.editWidgetInfo!.pageCursor = pageCursor;
+          template.basePdf = basePdf;
+
           designer.current.updateTemplate(template);
         }
       }, 0);
@@ -416,6 +424,7 @@ function DesignerApp() {
     if (e.target && e.target.files) {
       readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
         if (designer.current) {
+          widgetEditInfoRef.current.basePdf = basePdf as string;
           designer.current.updateTemplate(
             Object.assign(cloneDeep(designer.current.getTemplate()), {
               basePdf,
@@ -497,8 +506,9 @@ function DesignerApp() {
 
         // caculcate padding
         if (editWidgetRec) {
-          const { schemas: editSchemas, pageSize, pageCursor } = widgetEditInfoRef.current;
+          const { schemas: editSchemas, pageSizes, pageCursor } = widgetEditInfoRef.current;
           const { width, height, position } = editWidgetRec;
+          const pageSize = pageSizes[pageCursor];
 
           widgetEditInfoRef.current = {
             ...widgetEditInfoRef.current,
@@ -507,6 +517,7 @@ function DesignerApp() {
             height,
           };
           templateEditWidgetInfo.padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+          templateEditWidgetInfo.pageCursor = pageCursor;
           
           // Update the position of each schema based on editWidgetRec.position.
           if (editSchemas.length) {
