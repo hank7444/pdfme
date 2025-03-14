@@ -72,7 +72,7 @@ class Designer extends BaseUIClass {
 
   public setPageCursor(pageCursor: number) {
     if (this.designerRef.current) {
-      console.log('@@@@ this.designerRef.current', this.designerRef.current);
+      this.designerRef.current.setPageCursor(pageCursor);
     }
   }
 

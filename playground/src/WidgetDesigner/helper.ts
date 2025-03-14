@@ -14,6 +14,18 @@ export const DEFAULT_PADDING = [
   0,
 ];
 
+export const getDefaultWidgetEditInfo = () => {
+  return {
+    schemas: [],
+    position: { x: 0, y: 0 },
+    ...DEFAULT_WIDGET_EDIT_REC_SIZE,
+    pageCursor: 0,
+    pageSizes: [{ width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT }],
+    pageSize: { width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT },
+    basePdf: '',
+  };
+}
+
 export const getBlankTemplate = () => {
   return ({
     schemas: [{}],
@@ -25,7 +37,7 @@ export const getBlankTemplate = () => {
     editWidgetInfo: {
       width: 100,
       height: 60,
-      padding: DEFAULT_PADDING,
+      padding: [...DEFAULT_PADDING],
       pageCursor: 0,
     },
   } as Template);
@@ -56,4 +68,4 @@ export const isRectangleBOutOfBounds = (rectA: Rect, rectB: Rect): boolean => {
   const bottomB = yB + heightB;
 
   return xB < xA || rightB > rightA || yB < yA || bottomB > bottomA;
-}
+};

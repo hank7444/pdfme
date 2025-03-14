@@ -1,20 +1,18 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cloneDeep, Template, checkTemplate, Lang, Schema, EditWidgetInfo, Size } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Schema, EditWidgetInfo, Size } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
   getPlugins,
   uuid,
   readFile,
-  DEFAULT_TEMPLATE_WIDTH,
-  DEFAULT_TEMPLATE_HEIGHT,
 } from "../helper";
 import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
-import { Widget, BasePdf, WidgetEditInfo } from './types';
-import { 
-  DEFAULT_WIDGET_EDIT_REC_SIZE,
+import { Widget, WidgetEditInfo } from './types';
+import {
   getBlankTemplate,
-  getTemplatePadding, 
+  getDefaultWidgetEditInfo,
+  getTemplatePadding,
   isRectangleBOutOfBounds,
 } from './helper';
 import defaultWidgets from "./defaultWidgets";
@@ -23,15 +21,8 @@ import defaultWidgets from "./defaultWidgets";
 function DesignerApp() {
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
-  const widgetEditInfoRef = useRef<WidgetEditInfo>({
-    schemas: [],
-    position: { x: 0, y: 0 },
-    ...DEFAULT_WIDGET_EDIT_REC_SIZE,
-    pageCursor: 0,
-    pageSizes: [{ width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT }],
-    pageSize: { width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT },
-    basePdf: '',
-  });
+  const widgetEditInfoRef = useRef<WidgetEditInfo>(getDefaultWidgetEditInfo());
+  const pageCursorToUpdateRef = useRef<number | null>(null);
 
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
   const [widgetName, setWidgetName] = useState<string>('');
@@ -40,9 +31,7 @@ function DesignerApp() {
   const [isEditWidgetMode, setIsEditWidgetMode] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<Widget[]>([]);
 
-
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
-
 
   const buildDesigner = useCallback(() => {
     if (!designerRef.current) return;
@@ -80,17 +69,9 @@ function DesignerApp() {
         isEditWidgetMode: false,
         isWidgetDesigner: true,
       });
-      setIsDisabledSaveBtn(!template.schemas[pageCursor].length);
-
-      setTimeout(() => {
-        if (designer.current) {
-          designer.current.setPageCursor(1);
-        }
-      }, 3000);
     } catch {
       localStorage.removeItem("template");
     }
-
 
     // init widget dropdown
     getWidgetsFromLocalStorage();
@@ -109,8 +90,6 @@ function DesignerApp() {
     }
   }
 
-
-
   const onSaveWidget = () => {
 
     if (designer.current) {
@@ -123,12 +102,11 @@ function DesignerApp() {
 
         if (widgetsFromLocal) {
           widgets = JSON.parse(widgetsFromLocal);
-          //setWidgets(widgets);
         }
       } catch (e) {
         // do nothing here
       }
-      
+
       const id: string = selectedWidgetId || uuid();
       const schemas = template?.schemas[widgetEditInfo.pageCursor].map((schema) => {
         const name = schema.name.indexOf(id) === -1
@@ -180,10 +158,12 @@ function DesignerApp() {
   };
 
   const onViewWidgetData = () => {
+
+    // eslint-disable-next-line
     const formatJSONToHTML = (data: any): string => {
       if (typeof data === "object" && data !== null) {
         let htmlContent = "<ul>";
-        
+
         if (Array.isArray(data)) {
           data.forEach((item, index) => {
             htmlContent += `<li><span class="key">[${index}]:</span> ${formatJSONToHTML(item)}</li>`;
@@ -193,7 +173,7 @@ function DesignerApp() {
             htmlContent += `<li><span class="key">"${key}":</span> ${formatJSONToHTML(data[key])}</li>`;
           });
         }
-        
+
         htmlContent += "</ul>";
         return htmlContent;
       } else if (typeof data === "string") {
@@ -208,8 +188,8 @@ function DesignerApp() {
     };
 
     try {
-
       const newTab = window.open("", "_blank");
+
       if (newTab) {
         newTab.document.write("<html><head><title>Widget Data</title></head><body>");
         newTab.document.write("<h1>Widget Data</h1>");
@@ -250,16 +230,16 @@ function DesignerApp() {
             }
           </style>
         `);
-        
+
         const storedData = localStorage.getItem("widgets");
         const parsedData = storedData ? JSON.parse(storedData) : null;
-    
+
         if (parsedData) {
           newTab.document.write("<pre>" + formatJSONToHTML(parsedData) + "</pre>");
         } else {
           newTab.document.write("<p>No data found in localStorage.</p>");
         }
-    
+
         newTab.document.write("</body></html>");
         newTab.document.close();
       } else {
@@ -282,18 +262,18 @@ function DesignerApp() {
     }
   };
 
-
-
   const onChangeTemplate = useCallback(async (template?: Template | undefined) => {
     const { pageCursor } = widgetEditInfoRef.current;
 
+    const pageCursorSchemas = template?.schemas[pageCursor] ?? [];
+
     // Check if any schema exceeds the widget boundaries.
-    const hasAnySchemas = !!template?.schemas[pageCursor].length
-    const hasAnyOutOfBoundsSchemas = template?.schemas[pageCursor].some((schema) => {
+    const hasAnySchemas = !!pageCursorSchemas.length
+    const hasAnyOutOfBoundsSchemas = pageCursorSchemas.some((schema) => {
       return isRectangleBOutOfBounds(widgetEditInfoRef.current, schema);
     }) || false;
 
-    const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;    
+    const isDisabled = !hasAnySchemas || hasAnyOutOfBoundsSchemas;
     setIsDisabledSaveBtn(isDisabled);
   }, []);
 
@@ -309,37 +289,46 @@ function DesignerApp() {
 
     if (designer.current) {
       const template = designer.current.getTemplate();
-      const schemas = template.schemas;
+      const currSchemas = cloneDeep(template.schemas);
+      const newSchemas: Schema[][] = new Array(pageSizes.length).fill([]).map(() => []);
+      const schema = cloneDeep(currSchemas[currentPageCursor]);
 
-      // move schemas
-      for (let i = 0; i <= pageCursor; i++) {
-        if (!Array.isArray(schemas[i])) {
-          schemas[i] = [];
-        }
-      }
-
-      const schema = cloneDeep(schemas[currentPageCursor]);
-      schemas[currentPageCursor] = [];
-      schemas[pageCursor] = schema;
+      newSchemas[currentPageCursor] = [];
+      newSchemas[pageCursor] = schema;
 
       if (!pageSize) {
         return;
       }
 
-      // update padding for the page
+      /* 
+        The padding for the page needs to be updated 
+        because each page of the same PDF file may have different size.
+      */
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
       template.editWidgetInfo!.padding = padding;
       template.editWidgetInfo!.pageCursor = pageCursor;
+      template.schemas = newSchemas;
       designer.current.updateTemplate(template);
     }
   }, [])
 
   const onChangePageSizes = useCallback((pageSizes: Size[]) => {
+    
+    if (pageCursorToUpdateRef.current) {
+      const pageCursor = pageCursorToUpdateRef.current;
+      pageCursorToUpdateRef.current = null;
 
+      setTimeout(() => {
+        if (designer.current) {
+          designer.current.setPageCursor(pageCursor);
+        }
+      });
+    }
+    
     if (!pageSizes.length) {
       return;
     }
-    
+
     const { pageCursor, pageSize: currentPageSize, position } = widgetEditInfoRef.current;
     const pageSize = pageSizes[widgetEditInfoRef.current.pageCursor];
 
@@ -360,17 +349,17 @@ function DesignerApp() {
     }
   }, [])
 
-  const OnChangeWidgetSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const onChangeWidgetSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const id = event.target.value;
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
-
-    console.log('@@@ selectedWidget', selectedWidget);
 
     if (selectedWidget) {
       const { width, height, name, schemas, editInfo: { basePdf, position, pageCursor, pageSizes } } = selectedWidget;
       const pageSize = pageSizes[pageCursor];
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+      const template: Template = getBlankTemplate();
 
+      template.editWidgetInfo!.padding = padding;
       widgetEditInfoRef.current = {
         width,
         height,
@@ -384,50 +373,65 @@ function DesignerApp() {
       setSelectedWidgetId(id);
       setWidgetName(name);
 
-      // Delay calling updateTemplate() to ensure that the width and height states have been updated already."
-      setTimeout(() => {
-        const newWidgetSchemas = schemas.map((schema) => {
-          schema.position.x += position.x;
-          schema.position.y += position.y;
-          return schema;
-        });
+      const newSchemas: Schema[][] = new Array(pageSizes.length).fill([]).map(() => []);
+      const newWidgetSchemas = schemas.map((schema) => {
+        schema.position.x += position.x;
+        schema.position.y += position.y;
+        return schema;
+      });
+      
+      newSchemas[pageCursor] = newWidgetSchemas;
+      template.schemas = newSchemas;
+      template.editWidgetInfo!.pageCursor = pageCursor;
+      
+      if (basePdf) {
+        template.basePdf = basePdf;
 
-        if (designer.current) {
-          const template: Template = getBlankTemplate();
-          const newSchemas: Schema[][] = new Array(3).fill([]).map(() => []);
+        /* 
+          Temporarily store the pageCursor so that 
+          it can be used to scroll to the page in onChangePageSizes.
 
-          newSchemas[pageCursor] = newWidgetSchemas;
-          template.schemas = newSchemas;
-          template.editWidgetInfo!.padding = padding;
-          template.editWidgetInfo!.pageCursor = pageCursor;
-          template.basePdf = basePdf;
+          The reason for doing this is to ensure that the PDF 
+          is loaded before scrolling the page.
+        */
+        pageCursorToUpdateRef.current = pageCursor;
+      } 
 
-          designer.current.updateTemplate(template);
-        }
-      }, 0);
+      if (designer.current) {
+        designer.current.updateTemplate(template);
+      }
     }
   };
 
   const OnChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const action = event.target.value;
+    const pdfFileName = document.getElementById('pdfFileName');
+
+    setWidgetName('');
+    setSelectedWidgetId('');
+    setAction(action);
+    pdfFileName!.textContent = '';
 
     if (action === 'new') {
-      setSelectedWidgetId('');
-      setWidgetName('');
+      widgetEditInfoRef.current = getDefaultWidgetEditInfo();
 
       if (designer.current) {
         const template: Template = getBlankTemplate();
         designer.current.updateTemplate(template);
       }
     }
-
-    setSelectedWidgetId('');
-    setAction(action);
   };
 
+  const onClickChooseFile = () => {
+    const pdfFileInput = document.getElementById('pdfFileInput');
+    pdfFileInput?.click();
+  };
 
   const onChangeBasePDF = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pdfFileName = document.getElementById('pdfFileName');
+
     if (e.target && e.target.files) {
+      pdfFileName!.textContent = e.target.files[0].name;
       readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
         if (designer.current) {
           widgetEditInfoRef.current.basePdf = basePdf as string;
@@ -440,7 +444,7 @@ function DesignerApp() {
       });
     }
   };
-  
+
   useEffect(() => {
     if (designerRef.current) {
       buildDesigner();
@@ -456,19 +460,19 @@ function DesignerApp() {
     if (designer.current) {
       designer.current.onChangeTemplate(onChangeTemplate);
     }
-  }, [onChangeTemplate])
+  }, [onChangeTemplate]);
 
   useEffect(() => {
     if (designer.current) {
       designer.current.onChangePageCursor(onChangePageCursor);
     }
-  }, [onChangePageCursor])
+  }, [onChangePageCursor]);
 
   useEffect(() => {
     if (designer.current) {
       designer.current.onChangePageSizes(onChangePageSizes);
     }
-  }, [onChangePageSizes])
+  }, [onChangePageSizes]);
 
   useEffect(() => {
     if (designer.current) {
@@ -486,7 +490,7 @@ function DesignerApp() {
               y: schema.position.y - position.y,
             };
             return schema;
-          });          
+          });
         }
 
         // if schemas is empty array, add an default rectangle to the schemas array.
@@ -496,8 +500,8 @@ function DesignerApp() {
           position,
           width,
           height,
-          rotate: 0,
-          opacity: 1,
+          rotate: undefined,
+          opacity: undefined,
           borderWidth: 1,
           borderColor: '#00BFFF',
           color: '',
@@ -524,7 +528,7 @@ function DesignerApp() {
           };
           templateEditWidgetInfo.padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
           templateEditWidgetInfo.pageCursor = pageCursor;
-          
+
           // Update the position of each schema based on editWidgetRec.position.
           if (editSchemas.length) {
             editSchemas.map((schema) => {
@@ -539,38 +543,9 @@ function DesignerApp() {
           designer.current.updateTemplate(template);
         }
       }
-      designer.current.setEditWidgetMode(isEditWidgetMode);  
+      designer.current.setEditWidgetMode(isEditWidgetMode);
     }
-  }, [isEditWidgetMode])
-
-
-  const widgetNavItem = {
-    label: "Widget List",
-    content: (
-      <>
-        <select
-          className="w-full border rounded px-2 py-1"
-          style={{ width: '200px' }}
-          value={selectedWidgetId || ''}
-          onChange={OnChangeWidgetSelect}
-        >
-          <option value="" disabled>Please select widget...</option>
-          {widgets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <button
-          className="px-2 py-1 border rounded hover:bg-gray-100"
-          style={{ marginLeft: '10px' }}
-          onClick={onResetDefaultWidgets}
-        >
-          Reset to Defaults
-        </button>
-      </>
-    ),
-  };
+  }, [isEditWidgetMode]);
 
   const navItems: NavItem[] = [
     {
@@ -594,6 +569,35 @@ function DesignerApp() {
       ),
     },
     {
+      label: "Widget List",
+      content: (
+        <>
+          <select
+            className="w-full border rounded px-2 py-1"
+            style={{ width: '200px' }}
+            value={selectedWidgetId || ''}
+            disabled={action !== 'update'}
+            onChange={onChangeWidgetSelect}
+          >
+            <option value="" disabled>Please select widget...</option>
+            {widgets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:bg-gray-500"
+            style={{ marginLeft: '10px' }}
+            disabled={action !== 'update'}
+            onClick={onResetDefaultWidgets}
+          >
+            Reset to Defaults
+          </button>
+        </>
+      ),
+    },
+    {
       label: "",
       content: (
         <>
@@ -602,8 +606,8 @@ function DesignerApp() {
               <input type="text" readOnly value={selectedWidgetId} style={{ width: "150px", border: "1px solid black" }} />
             </div>
             <div>Name:&nbsp;
-              <input type="text" value={widgetName} style={{ 
-                width: "150px", 
+              <input type="text" value={widgetName} style={{
+                width: "150px",
                 border: "1px solid black",
               }}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setWidgetName(e.target.value); }}
@@ -619,24 +623,36 @@ function DesignerApp() {
     {
       label: "Change BasePDF",
       content: (
-        <input
-          type="file"
-          accept="application/pdf"
-          className="w-full text-sm border"
-          onChange={onChangeBasePDF}
-        />
+        <>
+          <input
+            id="pdfFileInput"
+            type="file"
+            accept="application/pdf"
+            className="w-full text-sm border"
+            style={{ display: 'none' }}
+            onChange={onChangeBasePDF}
+          />
+          <button
+            id="fileSelectButton"
+            className="px-2 py-1 border rounded hover:bg-gray-100 active:bg-sky-700"
+            onClick={onClickChooseFile}
+          >
+            Choose File
+          </button>
+          <span id="pdfFileName" style={{ marginLeft: 5 }}></span>
+        </>
       ),
     },
     {
       label: "",
       content: (
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             id="isEditWidgetMode"
-            name="isEditWidgetMode" 
-            checked={isEditWidgetMode} 
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => { 
+            name="isEditWidgetMode"
+            checked={isEditWidgetMode}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setIsEditWidgetMode(e.target.checked);
             }}
           />
@@ -645,11 +661,6 @@ function DesignerApp() {
       ),
     },
   ];
-  
-
-  if (action === 'update') {
-    navItems.splice(1, 0, widgetNavItem);
-  }
 
   return (
     <>

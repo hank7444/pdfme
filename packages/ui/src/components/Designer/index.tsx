@@ -80,10 +80,11 @@ const TemplateEditor = forwardRef(({
 
   useImperativeHandle(ref, () => ({
     setPageCursor(pageCursor: number) {
-      setPageCursor(pageCursor);
-      const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
+    
       if (canvasRef.current) {
-        canvasRef.current.scrollTop = scrollTop;
+        setPageCursor(pageCursor);
+        const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
+        canvasRef.current.scroll({ top: scrollTop + 25, behavior: 'smooth' });
       }
     },
   }));
@@ -178,31 +179,9 @@ const TemplateEditor = forwardRef(({
     setSchemasList(sl);
     onEditEnd();
 
-    
     if (isWidgetDesigner) {
-
-      /*
-      const newPageCursor = newTemplate.editWidgetInfo!.pageCursor;
-
-      console.log('newPageCursor', newPageCursor);
-      console.log('pageCursor', pageCursor);
-      console.log('pageSizes', pageSizes);
-      console.log('newTemplate.editWidgetInfo', newTemplate.editWidgetInfo);
-
-      if (pageCursor !== newPageCursor) { 
-        
-
-        if (canvasRef.current) {
-          const scrollTop = getPagesScrollTopByIndex(pageSizes, newPageCursor, scale);
-          canvasRef.current.scrollTop = scrollTop;
-        }
-
-        setPageCursor(newPageCursor);
-      }
-      */
       return;
     }
-    
     
     setPageCursor(0);
     if (canvasRef.current?.scroll) {
@@ -374,6 +353,7 @@ const TemplateEditor = forwardRef(({
             deselectSchema={onEditEnd}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
+            isEditWidgetMode={isEditWidgetMode}
           />
         
           <Canvas
