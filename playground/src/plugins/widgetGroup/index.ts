@@ -1,6 +1,6 @@
 import { Plugin, Schema, PropPanelSchema, SchemaForUI, Widget, cloneDeep } from '@pdfme/common';
 import { Group } from 'lucide';
-import cloneDeep from 'lodash/cloneDeep';
+import isEqual from 'lodash/isEqual';
 import { createSvgStr, uuid } from '../utils';
 import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } from './widgetData';
 import { WidgetGroupSchema } from './types';
@@ -10,9 +10,7 @@ import { WidgetGroupSchema } from './types';
   widgetGroupId: parent widget group ID, uuid()
   widgetGroupCompId: widget component ID from the widget dropdown menu
   widgetGroupType: 'parent' or 'child'
-
 */
-
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   ui: async (arg) => { },
   pdf: () => { },
@@ -40,40 +38,33 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
       const activeSchemaId = activeSchema.id as string;
       const activeSchemaWidgetGroupId = activeSchema.widgetGroupId as string;
-
-
       const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetGroupSection;
 
       if (widgetCategory) {
         widgetOptions = widgetCategoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
-        const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : null
+        const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : undefined
 
-        changeSchemas([
-          { key: 'widgetGroupSection.widget', value: newWidgetId, schemaId: activeSchemaId },
-          { key: 'widgetGroupId', value: activeSchemaWidgetGroupId, schemaId: activeSchemaId }
-        ]);
+        activeSchema.widgetGroupSection.widget = newWidgetId;
+        activeSchema.widgetGroupId = activeSchemaWidgetGroupId;
         
         // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
         if (!newWidgetId) {
-
           activeSchema.widgetGroupSection.widget = undefined;
           activeSchema.width = 62.5;
           activeSchema.height = 37.5;
-          const hasChildWidgets = schemas.some((schema: SchemaForUI) => 
-            schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
-
+  
           // Filter out all the child components of this widget group from the schemas
           const newSchemas = schemas.filter((schema: SchemaForUI) => {
             return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
           });
 
-          if (hasChildWidgets) {
-            onEditFunc([]);
+          if (!isEqual(newSchemas, schemas)) {
+            setTimeout(() => {
+              commitSchemas(newSchemas);
+              onEditFunc([]);
+              updateSelectoActiveElements();
+            });
           }
-
-          commitSchemas(newSchemas);
-          updateSelectoActiveElements();
-          
         } else {
           const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
           const { width, height, schemas: widgetSchemas } = widget;
@@ -110,10 +101,16 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
               return schema;
             });
-          
-            commitSchemas(newSchemas.concat(newWidgetSchemas));
-            onEditFunc([]);
-            updateSelectoActiveElements();
+
+            const finalNewSchemas = newSchemas.concat(newWidgetSchemas);
+
+            if (!isEqual(finalNewSchemas, schemas)) {
+              setTimeout(() => {
+                commitSchemas(finalNewSchemas);
+                onEditFunc([]);
+                updateSelectoActiveElements();
+              });
+            }
           }
         }
       }

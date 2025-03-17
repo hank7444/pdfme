@@ -420,10 +420,6 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     !!activeElements[0].getAttribute('data-widgetgroup-id') &&
     activeElements[0].getAttribute('data-widgetgroup-id') !== activeElements[0].id;
 
-  if (moveable.current) {
-    moveable.current.updateTarget();
-  }
-
   return (
     <div
       style={{

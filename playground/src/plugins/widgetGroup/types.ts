@@ -4,8 +4,8 @@ export interface WidgetGroupSchema extends Schema {
   widgetGroupId: string;
   widgetGroupCompId: string;
   widgetGroupType: string;
-  widgetSection: {
-    widgetCategory?: string;
-    widget?: string;
+  widgetGroupSection: {
+    widgetCategory: string | undefined;
+    widget: string | undefined;
   };
 }
