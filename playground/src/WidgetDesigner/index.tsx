@@ -38,7 +38,6 @@ function DesignerApp() {
     try {
       let template: Template = getBlankTemplate();
       const templateFromLocal = localStorage.getItem("template");
-      const { pageCursor } = widgetEditInfoRef.current;
 
       if (templateFromLocal) {
         const templateJson = JSON.parse(templateFromLocal) as Template;
@@ -403,7 +402,39 @@ function DesignerApp() {
     }
   };
 
-  const OnChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onCloneWidget = () => {
+    const selectedWidget = cloneDeep(widgets.find(widget => widget.id === selectedWidgetId));
+    const currentWidgetEditInfo = widgetEditInfoRef.current;
+
+    const newTemplate: Template = {
+      ...getBlankTemplate(),
+    }
+    newTemplate.editWidgetInfo!.width = currentWidgetEditInfo.width;
+    newTemplate.editWidgetInfo!.height = currentWidgetEditInfo.height;
+    newTemplate.editWidgetInfo!.padding = getTemplatePadding(
+      undefined, 
+      undefined, 
+      currentWidgetEditInfo.width,
+      currentWidgetEditInfo.height,
+      { x: 0, y: 0},
+    );
+    newTemplate.schemas = [[...cloneDeep(selectedWidget!.schemas)]];
+
+    widgetEditInfoRef.current = {
+      ...getDefaultWidgetEditInfo(),
+      width: currentWidgetEditInfo.width,
+      height: currentWidgetEditInfo.height,
+      schemas: cloneDeep(selectedWidget!.schemas),
+    };
+
+    setAction('new');
+    
+    if (designer.current) {
+      designer.current.updateTemplate(newTemplate);
+    }
+  };
+
+  const onChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const action = event.target.value;
     const pdfFileName = document.getElementById('pdfFileName');
 
@@ -555,14 +586,14 @@ function DesignerApp() {
           <label>
             <input type="radio" id="new" name="action" value="new"
               checked={action === 'new'}
-              onChange={OnChangeActionRadio} />
+              onChange={onChangeActionRadio} />
             <span style={{ marginLeft: '5px' }}>New Widget</span>
           </label>
 
           <label style={{ marginLeft: '10px' }}>
             <input type="radio" id="update" name="action" value="update"
               checked={action === 'update'}
-              onChange={OnChangeActionRadio} />
+              onChange={onChangeActionRadio} />
             <span style={{ marginLeft: '5px' }}>Update Widget</span>
           </label>
         </div>
@@ -593,6 +624,14 @@ function DesignerApp() {
             onClick={onResetDefaultWidgets}
           >
             Reset to Defaults
+          </button>
+          <button
+            className="px-2 py-1 border rounded hover:bg-gray-100 disabled:bg-gray-500"
+            style={{ marginLeft: '10px' }}
+            disabled={!selectedWidgetId}
+            onClick={onCloneWidget}
+          >
+            Clone Widget
           </button>
         </>
       ),
