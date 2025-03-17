@@ -12,6 +12,7 @@ import {
   generatePDF,
   downloadJsonFile,
   translations,
+  displayJSONDataFromLocalStorage,
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
 
@@ -201,12 +202,27 @@ function DesignerApp() {
       content: (
         <button
           className="px-2 py-1 border rounded hover:bg-gray-100"
+          onClick={() => {
+            displayJSONDataFromLocalStorage('template');
+          }}
+        >
+          View Template Data
+        </button>
+      ),
+    },
+    /*
+    {
+      label: "",
+      content: (
+        <button
+          className="px-2 py-1 border rounded hover:bg-gray-100"
           onClick={() => generatePDF(designer.current)}
         >
           Generate PDF
         </button>
       ),
     },
+    */
   ];
 
   return (

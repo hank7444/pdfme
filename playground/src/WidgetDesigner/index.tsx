@@ -6,6 +6,7 @@ import {
   getPlugins,
   uuid,
   readFile,
+  displayJSONDataFromLocalStorage,
 } from "../helper";
 import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
 import { Widget, WidgetEditInfo } from './types';
@@ -158,96 +159,7 @@ function DesignerApp() {
   };
 
   const onViewWidgetData = () => {
-
-    // eslint-disable-next-line
-    const formatJSONToHTML = (data: any): string => {
-      if (typeof data === "object" && data !== null) {
-        let htmlContent = "<ul>";
-
-        if (Array.isArray(data)) {
-          data.forEach((item, index) => {
-            htmlContent += `<li><span class="key">[${index}]:</span> ${formatJSONToHTML(item)}</li>`;
-          });
-        } else {
-          Object.keys(data).forEach((key) => {
-            htmlContent += `<li><span class="key">"${key}":</span> ${formatJSONToHTML(data[key])}</li>`;
-          });
-        }
-
-        htmlContent += "</ul>";
-        return htmlContent;
-      } else if (typeof data === "string") {
-        return `<span class="string">"${data}"</span>`;
-      } else if (typeof data === "number") {
-        return `<span class="number">${data}</span>`;
-      } else if (typeof data === "boolean") {
-        return `<span class="boolean">${data}</span>`;
-      } else {
-        return `<span class="null">null</span>`;
-      }
-    };
-
-    try {
-      const newTab = window.open("", "_blank");
-
-      if (newTab) {
-        newTab.document.write("<html><head><title>Widget Data</title></head><body>");
-        newTab.document.write("<h1>Widget Data</h1>");
-        newTab.document.write(`
-          <style>
-            body {
-              font-family: 'Consolas', 'Monaco', monospace;
-              background-color: #1e1e1e;
-              color: #dcdcdc;
-              margin: 0;
-              padding: 20px;
-            }
-            pre {
-              background-color: #252526;
-              padding: 10px;
-              border-radius: 5px;
-              overflow-x: auto;
-              color: #dcdcdc;
-            }
-            .key {
-              color: #569cd6; /* VS Code key color */
-              font-weight: bold;
-            }
-            .string {
-              color: #dcdcaa; /* VS Code string color */
-            }
-            .number {
-              color: #b5cea8; /* VS Code number color */
-            }
-            .boolean {
-              color: #ce9178; /* VS Code boolean color */
-            }
-            .null {
-              color: #808080; /* VS Code null color */
-            }
-            ul {
-              list-style-type: none;
-            }
-          </style>
-        `);
-
-        const storedData = localStorage.getItem("widgets");
-        const parsedData = storedData ? JSON.parse(storedData) : null;
-
-        if (parsedData) {
-          newTab.document.write("<pre>" + formatJSONToHTML(parsedData) + "</pre>");
-        } else {
-          newTab.document.write("<p>No data found in localStorage.</p>");
-        }
-
-        newTab.document.write("</body></html>");
-        newTab.document.close();
-      } else {
-        console.error("Failed to open new tab.");
-      }
-    } catch {
-      //
-    }
+    displayJSONDataFromLocalStorage('widgets');
   };
 
   const onResetDefaultWidgets = () => {
