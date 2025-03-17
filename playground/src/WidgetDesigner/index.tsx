@@ -450,7 +450,7 @@ function DesignerApp() {
 
     if (action === 'new') {
       widgetEditInfoRef.current = getDefaultWidgetEditInfo();
-      
+
       if (designer.current) {
         const template: Template = getBlankTemplate();
 
