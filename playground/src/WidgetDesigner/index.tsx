@@ -427,6 +427,8 @@ function DesignerApp() {
       schemas: cloneDeep(selectedWidget!.schemas),
     };
 
+    setWidgetName('');
+    setSelectedWidgetId('');
     setAction('new');
     
     if (designer.current) {
@@ -437,15 +439,17 @@ function DesignerApp() {
   const onChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const action = event.target.value;
     const pdfFileName = document.getElementById('pdfFileName');
+    const pdfFileInput = document.getElementById('pdfFileInput') as HTMLInputElement;
 
     setWidgetName('');
     setSelectedWidgetId('');
     setAction(action);
+    pdfFileInput!.value = '';
     pdfFileName!.textContent = '';
 
     if (action === 'new') {
       widgetEditInfoRef.current = getDefaultWidgetEditInfo();
-
+      
       if (designer.current) {
         const template: Template = getBlankTemplate();
         designer.current.updateTemplate(template);
@@ -642,10 +646,15 @@ function DesignerApp() {
         <>
           <div style={{ display: 'inline-block' }}>
             <div style={{ float: "right", marginBottom: "10px" }}>Id:&nbsp;
-              <input type="text" readOnly value={selectedWidgetId} style={{ width: "150px", border: "1px solid black" }} />
+              <input type="text" readOnly value={selectedWidgetId} style={{ 
+                paddingLeft: 3, 
+                width: "150px", 
+                border: "1px solid black" 
+              }} />
             </div>
             <div>Name:&nbsp;
               <input type="text" value={widgetName} style={{
+                paddingLeft: 3,
                 width: "150px",
                 border: "1px solid black",
               }}
