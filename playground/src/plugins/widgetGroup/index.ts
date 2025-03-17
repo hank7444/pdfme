@@ -6,47 +6,38 @@ import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } fr
 import { WidgetGroupSchema } from './types';
 
 
-/*
-  widgetGroupId: parent widget group ID, uuid()
-  widgetGroupCompId: widget component ID from the widget dropdown menu
-  widgetGroupType: 'parent' or 'child'
-*/
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   ui: async (arg) => { },
   pdf: () => { },
   propPanel: {
-    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas, commitSchemas, onEditFunc, selectoRef  }) => {
+    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, commitSchemas, onEditFunc, selectoRef  }) => {
       const updateSelectoActiveElements = () => {
         if (selectoRef.current) {
           setTimeout(() => {
             const elems: HTMLElement[] = selectoRef.current.getSelectableElements();
             const groupWidgetElems = elems.filter((elem: HTMLElement) => {
-              return elem.getAttribute('data-widgetgroup-id') === activeSchemaId || elem.id === activeSchema.id;
+              return elem.getAttribute('data-widgetgroup-id') === activeSchema.widgetGroupId;
             });
-
             onEditFunc(groupWidgetElems);
           }, 50);
         }
       }
 
-      let widgetOptions: Option[] = [];
       const activeSchema = _activeSchema as WidgetGroupSchema;
+      let widgetOptions: Option[] = [];
 
       if (!activeSchema.widgetGroupId) {
         activeSchema.widgetGroupId = uuid();
       }
 
-      const activeSchemaId = activeSchema.id as string;
       const activeSchemaWidgetGroupId = activeSchema.widgetGroupId as string;
       const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetGroupSection;
 
       if (widgetCategory) {
         widgetOptions = widgetCategoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
         const newWidgetId = widgetCategoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : undefined
-
         activeSchema.widgetGroupSection.widget = newWidgetId;
-        activeSchema.widgetGroupId = activeSchemaWidgetGroupId;
-        
+   
         // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
         if (!newWidgetId) {
           activeSchema.widgetGroupSection.widget = undefined;
@@ -69,24 +60,28 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           const widget: Widget = cloneDeep(widgetHash[newWidgetId]);
           const { width, height, schemas: widgetSchemas } = widget;
 
+          // The widgetGroupCompId property of the Widget group component will always be undefined
           const widgetGroupChildComp = schemas.find((schema: SchemaForUI) => {
             return schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId;
           });
                     
           if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupCompId !== widget.id) {
-            let newSchemas = cloneDeep(schemas);
-
-            newSchemas = newSchemas.filter((schema: SchemaForUI) => {
-              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.id !== activeSchemaId);
+            /* 
+              Filter out all the child components of the widgetGroup, newSchemas should only contain 
+              the widget group parent and other components that do not belong to this widget group 
+            */
+            const newSchemas = cloneDeep(schemas).filter((schema: SchemaForUI) => {
+              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
             });
 
-            const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchemaId);
+            const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchema.id);
 
             if (widgetGroupSchema) {
               widgetGroupSchema.width = width;
               widgetGroupSchema.height = height;
             }
 
+            // Add new widget child components to the pdfme schemas
             const newWidgetSchemas: SchemaForUI[] = widgetSchemas.map((schema: Schema, idx: number) => {
               schema.id = uuid();
               schema.name = `widgetGroup_${activeSchemaWidgetGroupId}_${widget.name}_comp_${idx}`;
@@ -129,7 +124,6 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               title: 'Widget Category',
               type: 'string',
               widget: 'select',
-              //required: true,
               default: '',
               props: {
                 options: widgetCategoryOptions,
@@ -140,7 +134,6 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               title: 'Widget',
               type: 'string',
               widget: 'select',
-              //required: true,
               default: '',
               props: {
                 options: widgetOptions,
