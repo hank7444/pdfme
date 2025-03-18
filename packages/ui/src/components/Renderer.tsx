@@ -57,6 +57,7 @@ const Wrapper = ({
       {...(schema.widgetGroupId && { 'data-widgetgroup-id': schema.widgetGroupId })}
       {...(schema.relPosition && { 'data-widgetgroup-pos-x': schema.relPosition.x })}
       {...(schema.relPosition && { 'data-widgetgroup-pos-y': schema.relPosition.y })}
+      {...(schema.widgetGroupType && { 'data-widgetgroup-type': schema.widgetGroupType })}
       style={{
         position: 'absolute',
         cursor: schema.readOnly ? 'initial' : 'pointer',

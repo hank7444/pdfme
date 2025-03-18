@@ -170,7 +170,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     }
   }, [pageCursor, schemasList, prevSchemas]);
 
-  const onDrag = ({ target, top, left }: OnDrag) => {
+  const onDrag = ({ target, top, left, ...restProps }: OnDrag) => {
     const { width: _width, height: _height } = target.style;
     const targetWidth = fmt(_width);
     const targetHeight = fmt(_height);
@@ -186,7 +186,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     if (isWidgetDesigner) {
       padding = isEditWidgetMode ? [0, 0, 0, 0] : editWidgetInfo.padding;
     } else if (isBlankPdf(basePdf)) {
-      padding = isWidgetDesigner ? editWidgetInfo.padding : basePdf.padding;
+      padding = basePdf.padding;
     }
 
     const [t, r, b, l] = padding || [0, 0, 0, 0];
@@ -201,7 +201,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     } else {
       target.style.top = `${top < topPadding ? topPadding : top}px`;
     }
-
+  
     if (actualLeft + targetWidth > pageWidth - rightPadding) {
       target.style.left = `${(pageWidth - targetWidth - rightPadding) * ZOOM}px`;
     } else {
@@ -211,6 +211,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
 
   const onDragEnd = ({ target }: { target: HTMLElement | SVGElement }) => {
     const { top, left } = target.style;
+
     changeSchemas([
       { key: 'position.y', value: fmt(top), schemaId: target.id },
       { key: 'position.x', value: fmt(left), schemaId: target.id },
@@ -218,15 +219,12 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   };
 
   const onDragEnds = ({ targets }: { targets: (HTMLElement | SVGElement)[] }) => {
-
-    // I don't know why Div DOM Elment don't move.
-    /*
     const widgetParantsPos = targets.reduce((accu, target) => {
-      const { style: { top, left }, id } = target;
-      const { widgetGroupType } = getWidgetGroupHTMLElemType(target)
+      const { style: { top, left } } = target;
+      const { widgetGroupId, widgetGroupType } = getWidgetGroupHTMLElemType(target)
 
-      if (widgetGroupType === 'parent' && !accu[id]) {
-        accu[id] = {
+      if (widgetGroupType === 'parent' && !accu[widgetGroupId]) {
+        accu[widgetGroupId] = {
           top: fmt4Num(top),
           left: fmt4Num(left),
         };
@@ -234,32 +232,23 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
       return accu;
     }, {} as { [key: string]: { top: number, left: number } });
 
-    const arg = targets.map((target) => {
-      const { widgetGroupId, widgetGroupType } = getWidgetGroupHTMLElemType(target);
-      const { style: { top: tarTop, left: tarLeft }, id } = target;
-
-      let top = fmt4Num(tarTop);
-      let left = fmt4Num(tarLeft);
+    targets.forEach((target) => {
+      const { 
+        widgetGroupId, 
+        widgetGroupType,
+        relPositionX,
+        relPositionY,
+      } = getWidgetGroupHTMLElemType(target);
 
       // If targets is child comps of a groupWidget, it should keep the relative coordinates with it parant comp
       if (widgetGroupType === 'child' && !!widgetParantsPos[widgetGroupId]) {
-        let top = Number(target.getAttribute('data-widgetgroup-pos-y')!) || 0;
-        let left = Number(target.getAttribute('data-widgetgroup-pos-x')!) || 0;
-
-      
-
         const { top: parantTop, left: parantLeft } = widgetParantsPos[widgetGroupId]; 
-        top += parantTop;
-        left += parantLeft;
+
+        target.style.top = `${parantTop + relPositionY * ZOOM}px`;
+        target.style.left = `${parantLeft + relPositionX * ZOOM}px`;
       }
-
-      return [
-        { key: 'position.y', value: fmt(`${top}px`), schemaId: id },
-        { key: 'position.x', value: fmt(`${left}px`), schemaId: id },
-      ];
     });
-    */
-
+    
     const arg = targets.map(({ style: { top, left }, id }) => [
       { key: 'position.y', value: fmt(top), schemaId: id },
       { key: 'position.x', value: fmt(left), schemaId: id },

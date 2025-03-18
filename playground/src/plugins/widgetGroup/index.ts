@@ -89,6 +89,12 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               schema.widgetGroupCompId = widget.id;
               schema.widgetGroupType = 'child';
 
+              // Maintain the relative position to the parent component
+              schema.relPosition = {
+                x: schema.position.x,
+                y: schema.position.y
+              };
+
               // Convert from relative coordinates to absolute coordinates
               const parantPos = activeSchema.position;
               schema.position.x += parantPos.x;

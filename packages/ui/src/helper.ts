@@ -527,13 +527,24 @@ export const getWidgetGroupElemType = (schema: SchemaForUI): string => {
   return schema.widgetGroupId == schema.id ? 'parent' : 'child';
 };
 
-export const getWidgetGroupHTMLElemType = (elem: HTMLElement): { isWidget: boolean, widgetGroupId: string, widgetGroupType: string } => {
+export const getWidgetGroupHTMLElemType = (elem: HTMLElement): { 
+  isWidget: boolean, 
+  widgetGroupId: string, 
+  widgetGroupType: string,
+  relPositionX: number,
+  relPositionY: number
+} => {
   const isWidgetElem = elem.hasAttribute('data-widgetgroup-id');
+  const widgetGroupType = elem.getAttribute('data-widgetgroup-type') || '';
   const id = elem.getAttribute('data-widgetgroup-id') || '';
+  const x = +(elem.getAttribute('data-widgetgroup-pos-x') || -1);
+  const y = +(elem.getAttribute('data-widgetgroup-pos-y') || -1);
 
   return {
     isWidget: isWidgetElem,
     widgetGroupId: id,
-    widgetGroupType: isWidgetElem ? elem.getAttribute('data-widgetgroup-id') == elem.id ? 'parent' : 'child' : '',
+    widgetGroupType: isWidgetElem ? widgetGroupType : '',
+    relPositionX: x,
+    relPositionY: y,
   };
 };
