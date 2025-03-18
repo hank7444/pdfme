@@ -1,7 +1,7 @@
 const defaultWidgets = [
   {
     "id": "2247b50e-1a96-4631-b023-31886e592297",
-    "name": "InputWidget1",
+    "name": "Input_Widget1",
     "width": 107.92,
     "height": 26.91,
     "editInfo": {
@@ -114,7 +114,7 @@ const defaultWidgets = [
   },
   {
     "id": "5376c19f-5696-41ff-a015-5c5b554b7920",
-    "name": "InputWidget2",
+    "name": "Input_Widget2",
     "width": 71.94,
     "height": 25.86,
     "editInfo": {
@@ -381,7 +381,7 @@ const defaultWidgets = [
   },
   {
     "id": "09551b52-ce4b-4660-aa04-e21f287ce8e1",
-    "name": "ShapeWidget1",
+    "name": "Shape_Widget1",
     "width": 55,
     "height": 55,
     "editInfo": {
@@ -439,7 +439,7 @@ const defaultWidgets = [
   },
   {
     "id": "7f012d17-d98b-47d2-92cb-2a522c45103d",
-    "name": "ShapeWidget2",
+    "name": "Shape_Widget2",
     "width": 100,
     "height": 60,
     "editInfo": {

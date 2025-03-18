@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, Widget } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
@@ -15,6 +15,7 @@ import {
   displayJSONDataFromLocalStorage,
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
+import { WidgetCategoryOption, WidgetGroupCategoryWidgetIds } from './plugins/widgetGroup/types';
 
 function DesignerApp() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,6 +47,41 @@ function DesignerApp() {
         template = templateJson;
       }
 
+      // Get widget group data from localStroage
+      const widgetsLocal = localStorage.getItem('widgets') || '';
+      const widgets = JSON.parse(widgetsLocal);
+      let categoryOptions: WidgetCategoryOption[] = [];
+      let categoryWidgetIds: WidgetGroupCategoryWidgetIds = {};
+
+      if (widgets.length > 0) {
+        const categoryData = widgets.reduce((acc, widget) => {
+          const [category = 'unknown'] = widget.name.split('_');
+          const lowerCaseCategory = category.toLowerCase();
+      
+          if (!acc.options[lowerCaseCategory]) {
+            acc.options[lowerCaseCategory] = {
+              label: category,
+              value: lowerCaseCategory,
+              widgets: []
+            };
+          }
+          acc.options[lowerCaseCategory].widgets.push({
+            label: widget.name,
+            value: widget.id
+          });
+      
+          if (!acc.widgetIds[lowerCaseCategory]) {
+            acc.widgetIds[lowerCaseCategory] = [];
+          }
+          acc.widgetIds[lowerCaseCategory].push(widget.id);
+      
+          return acc;
+        }, { options: {}, widgetIds: {} });
+      
+        categoryOptions = Object.values(categoryData.options);
+        categoryWidgetIds = categoryData.widgetIds;
+      }
+
       designer.current = new Designer({
         domContainer: designerRef.current,
         template,
@@ -63,6 +99,13 @@ function DesignerApp() {
           icons: {
             multiVariableText:
               '<svg fill="#000000" width="24px" height="24px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.643,13.072,17.414,2.3a1.027,1.027,0,0,1,1.452,0L20.7,4.134a1.027,1.027,0,0,1,0,1.452L9.928,16.357,5,18ZM21,20H3a1,1,0,0,0,0,2H21a1,1,0,0,0,0-2Z"/></svg>',
+          },
+          data: {
+            widgetGroup: {
+              categoryOptions,
+              categoryWidgetIds,
+              widgets,
+            },
           },
         },
         plugins: getLittlePlugins(),
