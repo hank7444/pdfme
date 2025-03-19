@@ -14,6 +14,23 @@ export const DEFAULT_PADDING = [
   0,
 ];
 
+export const getDefaultEditWidgetRec = () => {
+  return {
+    name: 'editWidgetRec',
+    type: 'rectangle',
+    position: { x: 0, y: 0 },
+    ...DEFAULT_WIDGET_EDIT_REC_SIZE,
+    rotate: undefined,
+    opacity: undefined,
+    borderWidth: 1,
+    borderColor: '#00BFFF',
+    color: '',
+    readOnly: true,
+    required: false,
+    content: '',
+  };
+};
+
 export const getDefaultWidgetEditInfo = () => {
   return {
     schemas: [],
@@ -24,7 +41,7 @@ export const getDefaultWidgetEditInfo = () => {
     pageSize: { width: DEFAULT_TEMPLATE_WIDTH, height: DEFAULT_TEMPLATE_HEIGHT },
     basePdf: '',
   };
-}
+};
 
 export const getBlankTemplate = () => {
   return ({

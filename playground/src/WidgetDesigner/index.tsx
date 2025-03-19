@@ -11,6 +11,7 @@ import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
 import { Widget, WidgetEditInfo } from './types';
 import {
   getBlankTemplate,
+  getDefaultEditWidgetRec,
   getDefaultWidgetEditInfo,
   getTemplatePadding,
   isRectangleBOutOfBounds,
@@ -452,6 +453,12 @@ function DesignerApp() {
       
       if (designer.current) {
         const template: Template = getBlankTemplate();
+
+        if (isEditWidgetMode) {
+          template.schemas[0] = [
+            getDefaultEditWidgetRec(),
+          ];
+        }
         designer.current.updateTemplate(template);
       }
     }
@@ -530,19 +537,10 @@ function DesignerApp() {
 
         // if schemas is empty array, add an default rectangle to the schemas array.
         template.schemas[pageCursor] = [{
-          name: 'editWidgetRec',
-          type: 'rectangle',
+          ...getDefaultEditWidgetRec(),
           position,
           width,
           height,
-          rotate: undefined,
-          opacity: undefined,
-          borderWidth: 1,
-          borderColor: '#00BFFF',
-          color: '',
-          readOnly: true,
-          required: false,
-          content: '',
         }];
 
         designer.current.updateTemplate(template);
