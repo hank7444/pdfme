@@ -10,6 +10,7 @@ import {
   Size,
 } from '@pdfme/common';
 import { BaseUIClass } from './class';
+import { flattenTemplateSchema } from './helper.js';
 import { DESTROYED_ERR_MSG } from './constants.js';
 import DesignerComponent from './components/Designer/index';
 import AppContextProvider from './components/AppContextProvider';
@@ -41,13 +42,11 @@ class Designer extends BaseUIClass {
   }
 
   public updateTemplate(template: Template) {
-    checkTemplate(template);
-    if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
-    this.template = cloneDeep(template);
+    super.updateTemplate(template)
+
     if (this.onChangeTemplateCallback) {
       this.onChangeTemplateCallback(template);
     }
-    this.render();
   }
 
   public onSaveTemplate(cb: (template: Template) => void) {

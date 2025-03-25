@@ -142,8 +142,7 @@ export abstract class BaseUIClass {
   public updateTemplate(template: Template) {
     checkTemplate(template);
     if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
-
-    this.template = cloneDeep(template);
+    this.template = flattenTemplateSchema(template);
     this.render();
   }
 

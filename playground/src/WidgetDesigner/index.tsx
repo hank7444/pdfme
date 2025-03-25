@@ -38,14 +38,18 @@ function DesignerApp() {
   const buildDesigner = useCallback(() => {
     if (!designerRef.current) return;
     try {
-      let template: Template = getBlankTemplate();
+      const template: Template = getBlankTemplate();
+      
+      // We don't load the template from local storage in the Widget Designer initially
+      /*
       const templateFromLocal = localStorage.getItem("template");
-
+      
       if (templateFromLocal) {
         const templateJson = JSON.parse(templateFromLocal) as Template;
         checkTemplate(templateJson);
         template = templateJson;
       }
+      */
 
       designer.current = new Designer({
         domContainer: designerRef.current,
@@ -71,7 +75,7 @@ function DesignerApp() {
         isWidgetDesigner: true,
       });
     } catch {
-      localStorage.removeItem("template");
+      //localStorage.removeItem("template");
     }
 
     // init widget dropdown

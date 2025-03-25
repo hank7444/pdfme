@@ -136,6 +136,7 @@ export const getLittlePlugins = () => {
     Line: line,
     Rectangle: rectangle,
     Ellipse: ellipse,
+    Signature: plugins.signature,
     WidgetGroup: plugins.widgetGroup,
   };
 }
