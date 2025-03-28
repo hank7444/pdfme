@@ -275,7 +275,13 @@ function DesignerApp() {
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
       const template: Template = getBlankTemplate();
 
-      template.editWidgetInfo!.padding = padding;
+      template.editWidgetInfo = {
+        width,
+        height,
+        padding,
+        pageCursor,
+      }
+
       widgetEditInfoRef.current = {
         width,
         height,
@@ -298,7 +304,6 @@ function DesignerApp() {
       
       newSchemas[pageCursor] = newWidgetSchemas;
       template.schemas = newSchemas;
-      template.editWidgetInfo!.pageCursor = pageCursor;
       
       if (basePdf) {
         template.basePdf = basePdf;

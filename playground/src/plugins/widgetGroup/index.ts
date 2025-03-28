@@ -43,7 +43,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
         if (widgetCategory) {
           widgetOptions = categoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
-          const newWidgetId = categoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : undefined
+          const newWidgetId = categoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : undefined;
           activeSchema.widgetGroupSection.widget = newWidgetId;
     
           // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
@@ -82,7 +82,8 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
                 return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
               });
 
-              const widgetGroupSchema = newSchemas.find((schema: SchemaForUI) => schema.id === activeSchema.id);
+              const widgetGroupSchemaIdx = newSchemas.findIndex((schema: SchemaForUI) => schema.id === activeSchema.id);
+              const widgetGroupSchema: SchemaForUI | null = newSchemas[widgetGroupSchemaIdx] || null;
 
               if (widgetGroupSchema) {
                 widgetGroupSchema.width = width;
@@ -111,11 +112,14 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
                 return schema;
               });
 
-              const finalNewSchemas = newSchemas.concat(newWidgetSchemas);
-
-              if (!isEqual(finalNewSchemas, schemas)) {
+              if (widgetGroupSchemaIdx !== -1) {
+                // Use splice to insert newWidgetSchemas after the found widgetGroupSchemaIndex
+                newSchemas.splice(widgetGroupSchemaIdx + 1, 0, ...newWidgetSchemas);
+              }
+            
+              if (!isEqual(newSchemas, schemas)) {
                 setTimeout(() => {
-                  commitSchemas(finalNewSchemas);
+                  commitSchemas(newSchemas);
                   onEditFunc([]);
                   updateSelectoActiveElements();
                 });
@@ -176,10 +180,6 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       widgetGroupSection: {
         widgetCategory: undefined,
         widget: undefined,
-      },
-      relPosition: {
-        x: 0,
-        y: 0,
       },
     },
   },
