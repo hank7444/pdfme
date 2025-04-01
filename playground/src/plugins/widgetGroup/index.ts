@@ -13,11 +13,10 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
     schema: ({ options, activeSchema: _activeSchema, i18n, schemas, commitSchemas, onEditFunc, selectoRef  }) => {
       let widgetOptions: Option[] = [];
       const { 
-        categoryOptions = [],
-        categoryWidgetIds = {},
+        categoryOptions,
+        categoryWidgetIds,
         widgets = [],
-       } = options?.data?.widgetGroup || {};
-
+      } = options?.data?.widgetGroup || {};
 
       if (categoryOptions && categoryWidgetIds && widgets.length) {
         const updateSelectoActiveElements = () => {
@@ -54,7 +53,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
     
             // Filter out all the child components of this widget group from the schemas
             const newSchemas = schemas.filter((schema: SchemaForUI) => {
-              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
+              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
             });
 
             if (!isEqual(newSchemas, schemas)) {
@@ -70,7 +69,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
 
             // The widgetGroupCompId property of the Widget group component will always be undefined
             const widgetGroupChildComp = schemas.find((schema: SchemaForUI) => {
-              return schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId;
+              return schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child';
             });
                       
             if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupCompId !== widget.id) {
@@ -79,7 +78,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
                 the widget group parent and other components that do not belong to this widget group 
               */
               const newSchemas = cloneDeep(schemas).filter((schema: SchemaForUI) => {
-                return !(schema.widgetGroupId === activeSchemaWidgetGroupId && !!schema.widgetGroupCompId);
+                return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
               });
 
               const widgetGroupSchemaIdx = newSchemas.findIndex((schema: SchemaForUI) => schema.id === activeSchema.id);
@@ -93,7 +92,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
               // Add new widget child components to the pdfme schemas
               const newWidgetSchemas: SchemaForUI[] = widgetSchemas.map((schema: Schema, idx: number) => {
                 schema.id = uuid();
-                schema.name = `widgetGroup_${activeSchemaWidgetGroupId}_${widget.name}_comp_${idx}`;
+                schema.name = `widgetGroup_${activeSchemaWidgetGroupId}_comp_${idx}`;
                 schema.widgetGroupId = activeSchemaWidgetGroupId;
                 schema.widgetGroupCompId = widget.id;
                 schema.widgetGroupType = 'child';
@@ -116,7 +115,7 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
                 // Use splice to insert newWidgetSchemas after the found widgetGroupSchemaIndex
                 newSchemas.splice(widgetGroupSchemaIdx + 1, 0, ...newWidgetSchemas);
               }
-            
+
               if (!isEqual(newSchemas, schemas)) {
                 setTimeout(() => {
                   commitSchemas(newSchemas);

@@ -12,7 +12,7 @@ import {
   px2mm,
 } from '@pdfme/common';
 import { DndContext } from '@dnd-kit/core';
-import Selecto, { ElementType } from 'react-selecto';
+import Selecto from 'react-selecto';
 import RightSidebar from './RightSidebar/index';
 import LeftSidebar from './LeftSidebar';
 import Canvas from './Canvas/index';

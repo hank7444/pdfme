@@ -394,7 +394,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     );
 
     const hasWidgetGroupComp = selectedSchemas.some((schema: SchemaForUI) => {
-      return schema.type === 'widgetGroup' || schema.name.includes('widgetGroup_');
+      return schema.type === 'widgetGroup' || !!schema.widgetGroupId;
     });
     
     const rotatable = uniqueSchemaTypes.every(

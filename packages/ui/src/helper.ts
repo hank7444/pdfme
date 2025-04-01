@@ -293,6 +293,54 @@ export const flattenTemplateSchema = (_template: Template) => {
   return template;
 }
 
+export const nestTemplateSchema = (_template: Template) => {
+  const template = cloneDeep(_template);
+  const schemasAry = template.schemas
+
+  schemasAry.forEach((schemas: SchemaForUI[], idx: number) => {
+
+    // Create a hash of child schemas for the widget group.
+    const widgetGroupChildsHash = schemas.reduce((accu, schema_: SchemaForUI) => {
+
+      const schema = cloneDeep(schema_);
+
+      if (schema.widgetGroupType === 'child') {
+        const widgetGroupId = schema.widgetGroupId;
+  
+        if (!accu[widgetGroupId]) {
+          accu[widgetGroupId] = [];
+        }
+
+        delete schema.widgetGroupType;
+        delete schema.widgetGroupCompId;
+        delete schema.widgetGroupId;
+
+        accu[widgetGroupId].push(schema); 
+      }
+      return accu;
+    }, {} as { [key: string]: SchemaForUI[] });
+
+    // Map the widgetGroup schemas and add child schemas, while retaining the widgetGroupId.
+    const newSchemas = schemas.filter((schema: SchemaForUI) => {
+      return  schema.type === 'widgetGroup' || !schema.widgetGroupType;
+    }).map ((schema_: SchemaForUI) => {
+      const schema = cloneDeep(schema_);
+
+      if (schema.type === 'widgetGroup') {
+        schema.widgetGroupChilds = widgetGroupChildsHash[schema.widgetGroupId] || [];
+        delete schema.widgetGroupType;
+        delete schema.widgetGroupCompId;
+      }
+      return schema;
+    });
+    schemasAry[idx] = newSchemas;
+  })
+
+  template.schemas = schemasAry;
+
+  return template;
+}
+
 
 export const template2SchemasList = async (_template: Template) => {
   const template = cloneDeep(_template);

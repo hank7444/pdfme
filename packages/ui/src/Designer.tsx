@@ -10,7 +10,6 @@ import {
   Size,
 } from '@pdfme/common';
 import { BaseUIClass } from './class';
-import { flattenTemplateSchema } from './helper.js';
 import { DESTROYED_ERR_MSG } from './constants.js';
 import DesignerComponent from './components/Designer/index';
 import AppContextProvider from './components/AppContextProvider';

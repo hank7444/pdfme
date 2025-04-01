@@ -8,6 +8,7 @@ import {
   SchemaForUI,
   ChangeSchemas,
   isBlankPdf,
+  Schema,
 } from '@pdfme/common';
 
 import {
@@ -218,19 +219,23 @@ export const useInitEvents = ({
         const arg = moveCommandToChangeSchemasArg({ command, activeSchemas, pageSize, isShift });
         changeSchemas(arg);
       },
-
       copy: () => {
         const activeSchemas = getActiveSchemas();
         if (activeSchemas.length === 0) return;
-        copiedSchemas.current = activeSchemas;
+        copiedSchemas.current = cloneDeep(activeSchemas);
       },
       paste: () => {
         if (!copiedSchemas.current || copiedSchemas.current.length === 0) return;
         const schema = schemasList[pageCursor];
         const stackUniqueSchemaNames: string[] = [];
+        const widgetGroupsSchemasHash: Record<string, { 
+          newWidgetGroupId: string;  
+          childIdx: number; 
+        }> = {};
+
         const pasteSchemas = copiedSchemas.current.map((cs) => {
           const id = uuid();
-          const name = getUniqueSchemaName({ copiedSchemaName: cs.name, schema, stackUniqueSchemaNames });
+          let name = getUniqueSchemaName({ copiedSchemaName: cs.name, schema, stackUniqueSchemaNames });
           const { height, width, position: p } = cs;
           const ps = pageSizes[pageCursor];
           const position = {
@@ -238,6 +243,20 @@ export const useInitEvents = ({
             y: p.y + 10 > ps.height - height ? ps.height - height : p.y + 10,
           };
 
+          if (cs.widgetGroupType === 'parent') {
+            const newWidgetGroupId = uuid();
+            widgetGroupsSchemasHash[cs.widgetGroupId] = {
+              newWidgetGroupId,
+              childIdx: 1,
+            }
+            cs.widgetGroupId = newWidgetGroupId;
+          } else if (cs.widgetGroupType === 'child') {
+            const parentSchemaInfo = widgetGroupsSchemasHash[cs.widgetGroupId];
+
+            name = `widgetGroup_${parentSchemaInfo.newWidgetGroupId}_comp_${parentSchemaInfo.childIdx}`;
+            widgetGroupsSchemasHash[cs.widgetGroupId].childIdx++;
+            cs.widgetGroupId = parentSchemaInfo.newWidgetGroupId;
+          }
           return Object.assign(cloneDeep(cs), { id, name, position });
         });
         commitSchemas(schemasList[pageCursor].concat(pasteSchemas));
