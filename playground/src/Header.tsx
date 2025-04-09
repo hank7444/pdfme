@@ -97,6 +97,7 @@ export default function Navigation() {
 
   const navLinks = [
     { to: '/templates', label: 'Templates' },
+    { to: '/widget-group-list', label: 'Widget Group List' },
     { to: '/new-designer', label: 'New Designer'},
     { to: '/widget-designer', label: 'Widget Designer'},
     { to: '/', label: 'Designer' },

@@ -1,5 +1,7 @@
 import { Routes, Route, useSearchParams } from "react-router-dom";
 import Designer from "./Designer";
+import WidgetGroupList from "./WigetGroupList";
+import WidgetGroupDesigner from "./WidgetGroupDesigner";
 import WidgetDesigner from "./WidgetDesigner";
 import NewDesigner from "./NewDesigner";
 import FormAndViewer from "./FormAndViewer";
@@ -15,6 +17,8 @@ function App() {
       {!isEmbedded && <Header />}
       <Routes>
         <Route path="/" element={<Designer />} />
+        <Route path="/widget-group-list" element={<WidgetGroupList />} />
+        <Route path="/widget-group-designer" element={<WidgetGroupDesigner />} />
         <Route path="/widget-designer" element={<WidgetDesigner />} />
         <Route path="/new-designer" element={<NewDesigner />} />
         <Route path="/new-designer" element={<WidgetDesigner />} />

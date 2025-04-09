@@ -80,19 +80,21 @@ const TemplateEditor = forwardRef(({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [prevTemplate, setPrevTemplate] = useState<Template | null>(null);
 
+
+  const { backgrounds, pageSizes, scale, error, refresh } =
+    useUIPreProcessor({ template, size, zoomLevel });
+
   useImperativeHandle(ref, () => ({
     setPageCursor(pageCursor: number) {
-    
-      if (canvasRef.current) {
+  
+      if (canvasRef.current && pageSizes.length) {
         setPageCursor(pageCursor);
+
         const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
         canvasRef.current.scroll({ top: scrollTop + 25, behavior: 'smooth' });
       }
     },
   }));
-
-  const { backgrounds, pageSizes, scale, error, refresh } =
-    useUIPreProcessor({ template, size, zoomLevel });
 
   const onEdit = (targets: HTMLElement[]) => {
     setActiveElements(targets);

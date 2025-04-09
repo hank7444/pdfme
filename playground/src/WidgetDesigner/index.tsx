@@ -1,23 +1,21 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cloneDeep, Template, checkTemplate, Schema, EditWidgetInfo, Size } from "@pdfme/common";
+import { cloneDeep, Template, Schema, EditWidgetInfo, Size } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
   getPlugins,
   uuid,
-  readFile,
   displayJSONDataFromLocalStorage,
 } from "../helper";
-import { NavBar, NavItem } from "./NavBarForWidgetDesigner";
-import { Widget, WidgetEditInfo } from './types';
+import { NavBar, NavItem } from "../NavBar";
+
+import { WidgetEditInfo, WidgetGroup, Widget } from '../WidgetGroupDesigner/types';
 import {
   getBlankTemplate,
-  getDefaultEditWidgetRec,
   getDefaultWidgetEditInfo,
   getTemplatePadding,
   isRectangleBOutOfBounds,
-} from './helper';
-import defaultWidgets from "./defaultWidgets";
+} from '../WidgetGroupDesigner/helper';
 
 
 function DesignerApp() {
@@ -26,12 +24,14 @@ function DesignerApp() {
   const widgetEditInfoRef = useRef<WidgetEditInfo>(getDefaultWidgetEditInfo());
   const pageCursorToUpdateRef = useRef<number | null>(null);
 
+  const widgetGroupIdRef = useRef<string>('');
+
   const [selectedWidgetId, setSelectedWidgetId] = useState<string>('');
   const [widgetName, setWidgetName] = useState<string>('');
   const [action, setAction] = useState('new');
   const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
-  const [isEditWidgetMode, setIsEditWidgetMode] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [widgetGroup, setWidgetGroup] = useState<WidgetGroup>();
 
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
 
@@ -84,11 +84,61 @@ function DesignerApp() {
 
   const getWidgetsFromLocalStorage = () => {
     try {
-      const widgetsFromLocal = localStorage.getItem("widgets");
+      const urlParams = new URLSearchParams(window.location.search);
+      const widgetGroupId = urlParams.get('widgetGroupId') || '';
 
-      if (widgetsFromLocal) {
-        const widgets = JSON.parse(widgetsFromLocal);
-        setWidgets(widgets);
+      widgetGroupIdRef.current = widgetGroupId;
+
+      const widgetGroupsFromLocal = localStorage.getItem('widgetGroups');
+
+      if (widgetGroupsFromLocal) {
+        const widgetGroups: WidgetGroup[] = JSON.parse(widgetGroupsFromLocal);
+
+        const widgetGroup = widgetGroups.find((w => w.id === widgetGroupId))
+        const widgets = widgetGroup?.widgets || [];
+
+        if (widgetGroup) {
+          const { 
+            basePdf,
+            pageSizes,
+            width,
+            height,
+            position,
+            pageCursor,
+           } = widgetGroup;
+
+          const pageSize = pageSizes[widgetGroup.pageCursor];
+
+          widgetEditInfoRef.current = {
+            basePdf,
+            pageSizes,
+            pageSize,
+            pageCursor,
+            width,
+            height,
+            position,
+            schemas: [],
+          };
+
+          setWidgetGroup(widgetGroup);
+          setWidgets(widgets);
+
+          pageCursorToUpdateRef.current = pageCursor;
+
+          if (designer.current) {
+            const template = designer.current.getTemplate();
+
+            if (basePdf) {
+              template.basePdf = basePdf;
+            }
+
+            const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+            template.editWidgetInfo!.padding = padding;
+            template.editWidgetInfo!.pageCursor = pageCursor;
+
+            designer.current.updateTemplate(template);
+          }
+        }
       }
     } catch {
       localStorage.removeItem("widgets");
@@ -98,31 +148,37 @@ function DesignerApp() {
   const onSaveWidget = () => {
 
     if (designer.current) {
-      const widgetEditInfo = widgetEditInfoRef.current;
-      const template: Template = cloneDeep(designer.current.getTemplate());
-      let widgets: Widget[] = [];
+      let widgetGroups: WidgetGroup[] = [];
 
       try {
-        const widgetsFromLocal = localStorage.getItem("widgets");
+        const widgetGroupsFromLocal = localStorage.getItem("widgetGroups");
 
-        if (widgetsFromLocal) {
-          widgets = JSON.parse(widgetsFromLocal);
+        if (widgetGroupsFromLocal) {
+          widgetGroups = JSON.parse(widgetGroupsFromLocal);
         }
       } catch (e) {
         // do nothing here
       }
+      const { pageCursor } = widgetEditInfoRef.current;
+      const widgetGroupIndex = widgetGroups.findIndex(w => w.id === widgetGroupIdRef.current);
+      const widgetGroup = widgetGroups[widgetGroupIndex];
+      const widgets = widgetGroup.widgets;
+
+      const { position } = widgetGroup;
+      const template: Template = cloneDeep(designer.current.getTemplate());
+    
 
       const id: string = selectedWidgetId || uuid();
-      const schemas = template?.schemas[widgetEditInfo.pageCursor].map((schema) => {
+      const schemas = template?.schemas[pageCursor].map((schema) => {
         const name = schema.name.indexOf(id) === -1
           ? `${id}_${schema.name}`
-          : schema.name; localStorage.setItem("widgets", JSON.stringify(widgets));
+          : schema.name; 
 
         const newSchema = Object.assign(cloneDeep(schema), {
           name,
           position: {
-            x: schema.position.x - widgetEditInfo.position.x,
-            y: schema.position.y - widgetEditInfo.position.y,
+            x: schema.position.x - position.x,
+            y: schema.position.y - position.y,
           },
         });
 
@@ -132,16 +188,9 @@ function DesignerApp() {
       const widget = {
         id,
         name: widgetName,
-        width: widgetEditInfo.width,
-        height: widgetEditInfo.height,
-        editInfo: {
-          position: widgetEditInfo.position,
-          pageCursor: widgetEditInfo.pageCursor,
-          pageSizes: widgetEditInfo.pageSizes,
-          basePdf: widgetEditInfo.basePdf,
-        },
         schemas,
       };
+
 
       const existWidgetIdx = widgets.findIndex((v) => v.id === id);
 
@@ -154,8 +203,8 @@ function DesignerApp() {
       }
 
       localStorage.setItem(
-        "widgets",
-        JSON.stringify(widgets)
+        "widgetGroups",
+        JSON.stringify(widgetGroups)
       );
 
       setWidgets(widgets);
@@ -163,20 +212,9 @@ function DesignerApp() {
   };
 
   const onViewWidgetData = () => {
-    displayJSONDataFromLocalStorage('widgets');
+    displayJSONDataFromLocalStorage('widgetGroups');
   };
 
-  const onResetDefaultWidgets = () => {
-    localStorage.setItem("widgets", JSON.stringify(defaultWidgets));
-    getWidgetsFromLocalStorage();
-    setSelectedWidgetId('');
-
-    if (designer.current) {
-      const template: Template = getBlankTemplate();
-      template.schemas = [[]];
-      designer.current.updateTemplate(template);
-    }
-  };
 
   const onChangeTemplate = useCallback(async (template?: Template | undefined) => {
     const { pageCursor } = widgetEditInfoRef.current;
@@ -229,7 +267,6 @@ function DesignerApp() {
   }, [])
 
   const onChangePageSizes = useCallback((pageSizes: Size[]) => {
-    
     if (pageCursorToUpdateRef.current) {
       const pageCursor = pageCursorToUpdateRef.current;
       pageCursorToUpdateRef.current = null;
@@ -238,7 +275,7 @@ function DesignerApp() {
         if (designer.current) {
           designer.current.setPageCursor(pageCursor);
         }
-      });
+      }, 1000);
     }
     
     if (!pageSizes.length) {
@@ -269,8 +306,11 @@ function DesignerApp() {
     const id = event.target.value;
     const selectedWidget = cloneDeep(widgets.find(widget => widget.id === id));
 
-    if (selectedWidget) {
-      const { width, height, name, schemas, editInfo: { basePdf, position, pageCursor, pageSizes } } = selectedWidget;
+    if (selectedWidget && widgetGroup) {
+      const { width, height } = widgetGroup;
+      const { pageCursor, position, basePdf, pageSizes } = widgetGroup;
+
+      const { name, schemas } = selectedWidget;
       const pageSize = pageSizes[pageCursor];
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
       const template: Template = getBlankTemplate();
@@ -324,87 +364,27 @@ function DesignerApp() {
     }
   };
 
-  const onCloneWidget = () => {
-    const selectedWidget = cloneDeep(widgets.find(widget => widget.id === selectedWidgetId));
-    const currentWidgetEditInfo = widgetEditInfoRef.current;
-
-    const newTemplate: Template = {
-      ...getBlankTemplate(),
-    }
-    newTemplate.editWidgetInfo!.width = currentWidgetEditInfo.width;
-    newTemplate.editWidgetInfo!.height = currentWidgetEditInfo.height;
-    newTemplate.editWidgetInfo!.padding = getTemplatePadding(
-      undefined, 
-      undefined, 
-      currentWidgetEditInfo.width,
-      currentWidgetEditInfo.height,
-      { x: 0, y: 0},
-    );
-    newTemplate.schemas = [[...cloneDeep(selectedWidget!.schemas)]];
-
-    widgetEditInfoRef.current = {
-      ...getDefaultWidgetEditInfo(),
-      width: currentWidgetEditInfo.width,
-      height: currentWidgetEditInfo.height,
-      schemas: cloneDeep(selectedWidget!.schemas),
-    };
-
-    setWidgetName('');
-    setSelectedWidgetId('');
-    setAction('new');
-    
-    if (designer.current) {
-      designer.current.updateTemplate(newTemplate);
-    }
-  };
 
   const onChangeActionRadio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const action = event.target.value;
-    const pdfFileName = document.getElementById('pdfFileName');
-    const pdfFileInput = document.getElementById('pdfFileInput') as HTMLInputElement;
 
     setWidgetName('');
     setSelectedWidgetId('');
     setAction(action);
-    pdfFileInput!.value = '';
-    pdfFileName!.textContent = '';
+
 
     if (action === 'new') {
-      widgetEditInfoRef.current = getDefaultWidgetEditInfo();
+      //widgetEditInfoRef.current = getDefaultWidgetEditInfo();
 
       if (designer.current) {
-        const template: Template = getBlankTemplate();
+        const template: Template = designer.current.getTemplate();
 
-        if (isEditWidgetMode) {
-          template.schemas[0] = [
-            getDefaultEditWidgetRec(),
-          ];
-        }
+        template.schemas = template.schemas.map(() => {
+          return [];
+        })
+
         designer.current.updateTemplate(template);
       }
-    }
-  };
-
-  const onClickChooseFile = () => {
-    const pdfFileInput = document.getElementById('pdfFileInput');
-    pdfFileInput?.click();
-  };
-
-  const onChangeBasePDF = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const pdfFileName = document.getElementById('pdfFileName');
-
-    if (e.target && e.target.files) {
-      pdfFileName!.textContent = e.target.files[0].name;
-      readFile(e.target.files[0], "dataURL").then(async (basePdf) => {
-        if (designer.current) {
-          widgetEditInfoRef.current.basePdf = basePdf as string;
-          designer.current.updateTemplate(
-            Object.assign(cloneDeep(designer.current.getTemplate()), {
-              basePdf,
-            })
-          );
-        }
-      });
     }
   };
 
@@ -437,69 +417,7 @@ function DesignerApp() {
     }
   }, [onChangePageSizes]);
 
-  useEffect(() => {
-    if (designer.current) {
-      const template = designer.current.getTemplate();
-      const templateEditWidgetInfo = template.editWidgetInfo as EditWidgetInfo;
-      const { position, width, height, pageCursor } = widgetEditInfoRef.current;
-      const schemas = template.schemas[pageCursor];
-
-      if (isEditWidgetMode) {
-        if (schemas.length) {
-          // Update the position of each schema based on editWidgetRec.position.
-          widgetEditInfoRef.current.schemas = cloneDeep(schemas).map((schema) => {
-            schema.position = {
-              x: schema.position.x - position.x,
-              y: schema.position.y - position.y,
-            };
-            return schema;
-          });
-        }
-
-        // if schemas is empty array, add an default rectangle to the schemas array.
-        template.schemas[pageCursor] = [{
-          ...getDefaultEditWidgetRec(),
-          position,
-          width,
-          height,
-        }];
-
-        designer.current.updateTemplate(template);
-      } else {
-        const editWidgetRec = schemas.find(s => s.name === 'editWidgetRec');
-
-        // caculcate padding
-        if (editWidgetRec) {
-          const { schemas: editSchemas, pageSizes, pageCursor } = widgetEditInfoRef.current;
-          const { width, height, position } = editWidgetRec;
-          const pageSize = pageSizes[pageCursor];
-
-          widgetEditInfoRef.current = {
-            ...widgetEditInfoRef.current,
-            position,
-            width,
-            height,
-          };
-          templateEditWidgetInfo.padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
-          templateEditWidgetInfo.pageCursor = pageCursor;
-
-          // Update the position of each schema based on editWidgetRec.position.
-          if (editSchemas.length) {
-            editSchemas.map((schema) => {
-              schema.position = {
-                x: schema.position.x + position.x,
-                y: schema.position.y + position.y,
-              };
-              return schema;
-            });
-          }
-          template.schemas[pageCursor] = editSchemas.length ? editSchemas : [];
-          designer.current.updateTemplate(template);
-        }
-      }
-      designer.current.setEditWidgetMode(isEditWidgetMode);
-    }
-  }, [isEditWidgetMode]);
+  
 
   const navItems: NavItem[] = [
     {
@@ -540,6 +458,7 @@ function DesignerApp() {
               </option>
             ))}
           </select>
+          {/*
           <button
             className="px-2 py-1 border rounded hover:bg-gray-100 disabled:bg-gray-500"
             style={{ marginLeft: '10px' }}
@@ -556,6 +475,7 @@ function DesignerApp() {
           >
             Clone Widget
           </button>
+          */}
         </>
       ),
     },
@@ -586,53 +506,12 @@ function DesignerApp() {
     },
   ];
 
-  const navItems2: NavItem[] = [
-    {
-      label: "Change BasePDF",
-      content: (
-        <>
-          <input
-            id="pdfFileInput"
-            type="file"
-            accept="application/pdf"
-            className="w-full text-sm border"
-            style={{ display: 'none' }}
-            onChange={onChangeBasePDF}
-          />
-          <button
-            id="fileSelectButton"
-            className="px-2 py-1 border rounded hover:bg-gray-100 active:bg-sky-700"
-            onClick={onClickChooseFile}
-          >
-            Choose File
-          </button>
-          <span id="pdfFileName" style={{ marginLeft: 5 }}></span>
-        </>
-      ),
-    },
-    {
-      label: "",
-      content: (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <input
-            type="checkbox"
-            id="isEditWidgetMode"
-            name="isEditWidgetMode"
-            checked={isEditWidgetMode}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setIsEditWidgetMode(e.target.checked);
-            }}
-          />
-          <label htmlFor="isEditWidgetMode" style={{ marginLeft: 5 }}>Enter Widget Size and Position Edit Mode</label>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <>
+      <div style={{ fontWeight: 'bold', paddingLeft: 5 }} >Widget Group: {widgetGroup?.name}</div>
       <NavBar items={navItems} />
-      <NavBar items={navItems2} />
+      {/* <NavBar items={navItems2} /> */}
       <div ref={designerRef} className="flex-1 w-full" />
 
       <div style={{

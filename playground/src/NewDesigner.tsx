@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cloneDeep, Template, checkTemplate, Lang, Widget } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
@@ -9,13 +9,14 @@ import {
   readFile,
   getLittlePlugins,
   handleLoadTemplate,
-  generatePDF,
   downloadJsonFile,
   translations,
   displayJSONDataFromLocalStorage,
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
 import { WidgetCategoryOption, WidgetGroupCategoryWidgetIds } from './plugins/widgetGroup/types';
+
+import { Widget, WidgetGroup } from './WidgetGroupDesigner/types'
 
 function DesignerApp() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,39 +49,33 @@ function DesignerApp() {
       }
 
       // Get widget group data from localStroage
-      const widgetsLocal = localStorage.getItem('widgets') || '';
-      const widgets = JSON.parse(widgetsLocal);
-      let categoryOptions: WidgetCategoryOption[] = [];
-      let categoryWidgetIds: WidgetGroupCategoryWidgetIds = {};
+      const widgetGroupsLocal = localStorage.getItem('widgetGroups') || '';
+      const widgetGroups = JSON.parse(widgetGroupsLocal);
 
-      if (widgets.length > 0) {
-        const categoryData = widgets.reduce((acc, widget) => {
-          const [category = 'unknown'] = widget.name.split('_');
-          const lowerCaseCategory = category.toLowerCase();
-      
-          if (!acc.options[lowerCaseCategory]) {
-            acc.options[lowerCaseCategory] = {
-              label: category,
-              value: lowerCaseCategory,
-              widgets: []
+
+      const categoryWidgetIds: WidgetGroupCategoryWidgetIds = {};
+      let widgets: Widget[] = [];
+      const categoryOptions: WidgetCategoryOption[] = widgetGroups.map((wg: WidgetGroup) => {
+        categoryWidgetIds[wg.id] = wg.widgets.map((widget: Widget) => widget.id);
+        widgets = widgets.concat(wg.widgets.map((widget: Widget) => {
+          return {
+            ...widget,
+            width: wg.width,
+            height: wg.height,
+          };
+        }));
+
+        return {
+          label: wg.name,
+          value: wg.id,
+          widgets: wg.widgets.map((widget: Widget) => {
+            return {
+              label: widget.name,
+              value: widget.id,
             };
-          }
-          acc.options[lowerCaseCategory].widgets.push({
-            label: widget.name,
-            value: widget.id
-          });
-      
-          if (!acc.widgetIds[lowerCaseCategory]) {
-            acc.widgetIds[lowerCaseCategory] = [];
-          }
-          acc.widgetIds[lowerCaseCategory].push(widget.id);
-      
-          return acc;
-        }, { options: {}, widgetIds: {} });
-      
-        categoryOptions = Object.values(categoryData.options);
-        categoryWidgetIds = categoryData.widgetIds;
-      }
+          })
+        };
+      });
 
       designer.current = new Designer({
         domContainer: designerRef.current,
