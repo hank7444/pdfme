@@ -19,7 +19,7 @@ export interface WidgetGroup {
   height: number;
   position: Position;
   pageCursor: number;
-  pageSizes: Size[];
+  pageSize: Size;
   basePdf: string;
   widgets: Widget[];
 }
@@ -58,7 +58,6 @@ export interface WidgetEditInfo {
   height: number;                     // editRect height
   position: { x: number, y: number }; // editRect position
   pageCursor: number;
-  pageSizes: Size[],
   pageSize: Size;
   basePdf: string;
 }

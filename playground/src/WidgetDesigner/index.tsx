@@ -100,18 +100,16 @@ function DesignerApp() {
         if (widgetGroup) {
           const { 
             basePdf,
-            pageSizes,
+            pageSize,
             width,
             height,
             position,
             pageCursor,
            } = widgetGroup;
 
-          const pageSize = pageSizes[widgetGroup.pageCursor];
 
           widgetEditInfoRef.current = {
             basePdf,
-            pageSizes,
             pageSize,
             pageCursor,
             width,
@@ -132,7 +130,9 @@ function DesignerApp() {
               template.basePdf = basePdf;
             }
 
-            const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+            const padding = pageCursor === 0 
+              ? getTemplatePadding(pageSize.width, pageSize.height, width, height, position) 
+              : getTemplatePadding(pageSize.width, pageSize.height, 0, 0, { x: 0, y: 0 });
             template.editWidgetInfo!.padding = padding;
             template.editWidgetInfo!.pageCursor = pageCursor;
 
@@ -232,40 +232,27 @@ function DesignerApp() {
   }, []);
 
   const onChangePageCursor = useCallback((pageCursor: number) => {
-    const { pageCursor: currentPageCursor, pageSizes, width, height, position } = widgetEditInfoRef.current;
-    widgetEditInfoRef.current.pageCursor = pageCursor;
-    let pageSize = widgetEditInfoRef.current.pageSize;
+    const { pageCursor: currentPageCursor, width, height, position } = widgetEditInfoRef.current;
+    const pageSize = widgetEditInfoRef.current.pageSize;
 
-    if (pageSizes.length) {
-      pageSize = pageSizes[pageCursor];
-      widgetEditInfoRef.current.pageSize = pageSize;
-    }
 
     if (designer.current) {
-      const template = designer.current.getTemplate();
-      const currSchemas = cloneDeep(template.schemas);
-      const newSchemas: Schema[][] = new Array(pageSizes.length).fill([]).map(() => []);
-      const schema = cloneDeep(currSchemas[currentPageCursor]);
-
-      newSchemas[currentPageCursor] = [];
-      newSchemas[pageCursor] = schema;
-
-      if (!pageSize) {
-        return;
-      }
 
       /* 
         The padding for the page needs to be updated 
         because each page of the same PDF file may have different size.
       */
-      const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+      const template = designer.current.getTemplate();
+      const padding = pageCursor !== currentPageCursor
+        ? getTemplatePadding(pageSize.width, pageSize.height, 0, 0, { x: 0, y: 0 })
+        : getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
+
       template.editWidgetInfo!.padding = padding;
-      template.editWidgetInfo!.pageCursor = pageCursor;
-      template.schemas = newSchemas;
       designer.current.updateTemplate(template);
     }
   }, [])
 
+  
   const onChangePageSizes = useCallback((pageSizes: Size[]) => {
     if (pageCursorToUpdateRef.current) {
       const pageCursor = pageCursorToUpdateRef.current;
@@ -278,6 +265,7 @@ function DesignerApp() {
       }, 1000);
     }
     
+    /*
     if (!pageSizes.length) {
       return;
     }
@@ -285,7 +273,7 @@ function DesignerApp() {
     const { pageCursor, pageSize: currentPageSize, position } = widgetEditInfoRef.current;
     const pageSize = pageSizes[widgetEditInfoRef.current.pageCursor];
 
-    widgetEditInfoRef.current.pageSizes = pageSizes;
+
     widgetEditInfoRef.current.pageSize = pageSize;
 
     if (pageSize && currentPageSize && currentPageSize.width === pageSize.width && currentPageSize.height === pageSize.height) {
@@ -300,7 +288,11 @@ function DesignerApp() {
       template.editWidgetInfo!.pageCursor = pageCursor;
       designer.current.updateTemplate(template);
     }
+    */
   }, [])
+  
+
+
 
   const onChangeWidgetSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const id = event.target.value;
@@ -308,10 +300,9 @@ function DesignerApp() {
 
     if (selectedWidget && widgetGroup) {
       const { width, height } = widgetGroup;
-      const { pageCursor, position, basePdf, pageSizes } = widgetGroup;
+      const { pageCursor, position, basePdf, pageSize } = widgetGroup;
 
       const { name, schemas } = selectedWidget;
-      const pageSize = pageSizes[pageCursor];
       const padding = getTemplatePadding(pageSize.width, pageSize.height, width, height, position);
       const template: Template = getBlankTemplate();
 
@@ -329,13 +320,12 @@ function DesignerApp() {
         schemas,
         pageCursor,
         pageSize,
-        pageSizes,
         basePdf,
       };
       setSelectedWidgetId(id);
       setWidgetName(name);
 
-      const newSchemas: Schema[][] = new Array(pageSizes.length).fill([]).map(() => []);
+      const newSchemas: Schema[][] = new Array(pageCursor + 1).fill([]).map(() => []);
       const newWidgetSchemas = schemas.map((schema) => {
         schema.position.x += position.x;
         schema.position.y += position.y;
@@ -411,11 +401,13 @@ function DesignerApp() {
     }
   }, [onChangePageCursor]);
 
+  
   useEffect(() => {
     if (designer.current) {
       designer.current.onChangePageSizes(onChangePageSizes);
     }
   }, [onChangePageSizes]);
+  
 
   
 

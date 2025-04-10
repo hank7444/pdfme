@@ -103,7 +103,7 @@ function DesignerApp() {
         height: editWidgetRec!.height,
         position: editWidgetRec!.position,
         pageCursor,
-        pageSizes,
+        pageSize: pageSizes[pageCursor],
         basePdf,
         widgets: [],
       };
