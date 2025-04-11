@@ -16,13 +16,73 @@ import {
 import { NavBar, NavItem } from "./NavBar";
 import { WidgetCategoryOption, WidgetGroupCategoryWidgetIds } from './plugins/widgetGroup/types';
 
-import { Widget, WidgetGroup } from './WidgetGroupDesigner/types'
+import { Widget } from './WidgetGroupDesigner/types'
+
+
+interface WidgetGroup {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  widgets: Widget[],
+}
+
+interface DraggableItemProps {
+  id: string;
+  name: string;
+}
+
+const DraggableItem = ({ id, name }: DraggableItemProps) => {
+
+  const handleDragStart = (event: React.DragEvent<HTMLLIElement>) => {
+    const dragData = { id };
+    event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+  };
+
+  return (
+    <li 
+      draggable="true"  
+      data-widgetgroup-id={id} 
+      className="h-[50px] flex items-center px-3 rounded bg-white hover:bg-gray-200 cursor-pointer"
+      onDragStart={handleDragStart}
+    >
+      {name}
+    </li>
+  )
+}
+
 
 function DesignerApp() {
   const [searchParams, setSearchParams] = useSearchParams();
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
   const [lang, setLang] = useState<Lang>("en");
+
+  const widgetGroupsRef = useRef<WidgetGroup[]>([]);
+  const [widgetGroups, setWidgetGroups] = useState<WidgetGroup[]>([]);
+
+  useEffect(() => {
+    try {
+      const widgetGroups = localStorage.getItem("widgetGroups");
+      let widgetGroupJSON: WidgetGroup[] = []; 
+
+      if (widgetGroups) {
+        widgetGroupJSON = JSON.parse(widgetGroups).map((wg) => {
+          return {
+            id: wg.id,
+            name: wg.name,
+            width: wg.width,
+            height: wg.height,
+          }
+        })
+      }
+      setWidgetGroups(widgetGroupJSON)
+      widgetGroupsRef.current = widgetGroupJSON;
+    } catch {
+      console.error("An error occurred while process widgetGroup data from the local storage.");
+    }
+
+  }, []);
 
 
   const buildDesigner = useCallback(async () => {
@@ -264,10 +324,25 @@ function DesignerApp() {
   ];
 
   return (
-    <>
+    <div className="h-screen">
       <NavBar items={navItems} />
-      <div ref={designerRef} className="flex-1 w-full" />
-    </>
+      <div className="flex w-full h-full ">
+        <div className="w-1/5 bg-gray-100 p-4">
+          <h2 className="text-lg font-semibold mb-4">Widget Group</h2>
+          <ul className="space-y-2">
+            {widgetGroups.map((item, index) => (
+              <DraggableItem 
+                key={`widgetGroup_${index}`}
+                id={item.id}
+                name={item.name}
+              />
+            ))}
+          </ul>
+        </div>
+
+        <div ref={designerRef} className="w-4/5 flex-1 bg-white" />
+      </div>
+    </div>
   );
 }
 

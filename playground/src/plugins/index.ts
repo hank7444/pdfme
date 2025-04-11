@@ -1,9 +1,9 @@
 import { signature } from './signature';
-import widgetGroup from './widgetGroup';
+import widgetGroup2 from './widgetGroup2';
 
 const plugins = {
   signature,
-  widgetGroup,
+  widgetGroup2,
 };
 
 export default plugins;
