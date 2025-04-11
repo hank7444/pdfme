@@ -3,7 +3,7 @@ import { Group } from 'lucide';
 import isEqual from 'lodash/isEqual';
 import { createSvgStr, uuid } from '../utils';
 //import { widgetCategoryOptions, widgetCategoryWidgetIds, widgetHash, Option } from './widgetData';
-import { Option, WidgetGroupSchema } from './types';
+import { Option, WidgetGroupWidgetOptions, WidgetGroupSchema } from './types';
 
 
 const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
@@ -11,122 +11,17 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   pdf: () => { },
   propPanel: {
     schema: ({ options, activeSchema: _activeSchema, i18n, schemas, commitSchemas, onEditFunc, selectoRef  }) => {
-      let widgetOptions: Option[] = [];
-      const { 
-        categoryOptions,
-        categoryWidgetIds,
-        widgets = [],
-      } = options?.data?.widgetGroup || {};
+      const widgetGroupWidgetOptions: WidgetGroupWidgetOptions 
+        = options?.data?.widgetGroupWidgetOptions || {};
 
-      if (categoryOptions && categoryWidgetIds && widgets.length) {
-        const updateSelectoActiveElements = () => {
-          if (selectoRef.current) {
-            setTimeout(() => {
-              const elems: HTMLElement[] = selectoRef.current.getSelectableElements();
-              const groupWidgetElems = elems.filter((elem: HTMLElement) => {
-                return elem.getAttribute('data-widgetgroup-id') === activeSchema.widgetGroupId;
-              });
-              onEditFunc(groupWidgetElems);
-            }, 50);
-          }
-        }
-
-        const activeSchema = _activeSchema as WidgetGroupSchema;
-
-        if (!activeSchema.widgetGroupId) {
-          activeSchema.widgetGroupId = uuid();
-        }
-
-        const activeSchemaWidgetGroupId = activeSchema.widgetGroupId as string;
-        const { widgetCategory, widget: widgetId = '' } = activeSchema.widgetGroupSection;
-
-        if (widgetCategory) {
-          widgetOptions = categoryOptions.find(v => v.value === widgetCategory)?.widgets || [];
-          const newWidgetId = categoryWidgetIds[widgetCategory].includes(widgetId) ? widgetId : undefined;
-          activeSchema.widgetGroupSection.widget = newWidgetId;
-    
-          // remove current widgetGroup child comps, and reset the size of groupWidget parent comp
-          if (!newWidgetId) {
-            activeSchema.widgetGroupSection.widget = undefined;
-            activeSchema.width = 62.5;
-            activeSchema.height = 37.5;
-    
-            // Filter out all the child components of this widget group from the schemas
-            const newSchemas = schemas.filter((schema: SchemaForUI) => {
-              return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
-            });
-
-            if (!isEqual(newSchemas, schemas)) {
-              setTimeout(() => {
-                commitSchemas(newSchemas);
-                onEditFunc([]);
-                updateSelectoActiveElements();
-              });
-            }
-          } else {
-            const widget: Widget = cloneDeep(widgets.find((widget: Widget) => widget.id === newWidgetId));
-            const { width, height, schemas: widgetSchemas } = widget;
-
-            // The widgetGroupCompId property of the Widget group component will always be undefined
-            const widgetGroupChildComp = schemas.find((schema: SchemaForUI) => {
-              return schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child';
-            });
-                      
-            if (!widgetGroupChildComp || widgetGroupChildComp.widgetGroupCompId !== widget.id) {
-              /* 
-                Filter out all the child components of the widgetGroup, newSchemas should only contain 
-                the widget group parent and other components that do not belong to this widget group 
-              */
-              const newSchemas = cloneDeep(schemas).filter((schema: SchemaForUI) => {
-                return !(schema.widgetGroupId === activeSchemaWidgetGroupId && schema.widgetGroupType === 'child');
-              });
-
-              const widgetGroupSchemaIdx = newSchemas.findIndex((schema: SchemaForUI) => schema.id === activeSchema.id);
-              const widgetGroupSchema: SchemaForUI | null = newSchemas[widgetGroupSchemaIdx] || null;
-
-              if (widgetGroupSchema) {
-                widgetGroupSchema.width = width;
-                widgetGroupSchema.height = height;
-              }
-
-              // Add new widget child components to the pdfme schemas
-              const newWidgetSchemas: SchemaForUI[] = widgetSchemas.map((schema: Schema, idx: number) => {
-                schema.id = uuid();
-                schema.name = `widgetGroup_${activeSchemaWidgetGroupId}_comp_${idx}`;
-                schema.widgetGroupId = activeSchemaWidgetGroupId;
-                schema.widgetGroupCompId = widget.id;
-                schema.widgetGroupType = 'child';
-
-                // Maintain the relative position to the parent component
-                schema.relPosition = {
-                  x: schema.position.x,
-                  y: schema.position.y
-                };
-
-                // Convert from relative coordinates to absolute coordinates
-                const parantPos = activeSchema.position;
-                schema.position.x += parantPos.x;
-                schema.position.y += parantPos.y;
-
-                return schema;
-              });
-
-              if (widgetGroupSchemaIdx !== -1) {
-                // Use splice to insert newWidgetSchemas after the found widgetGroupSchemaIndex
-                newSchemas.splice(widgetGroupSchemaIdx + 1, 0, ...newWidgetSchemas);
-              }
-
-              if (!isEqual(newSchemas, schemas)) {
-                setTimeout(() => {
-                  commitSchemas(newSchemas);
-                  onEditFunc([]);
-                  updateSelectoActiveElements();
-                });
-              }
-            }
-          }
-        }
+      const activeSchema = _activeSchema as WidgetGroupSchema;
+      
+      if (!activeSchema.widgetGroupSchemaId) {
+        activeSchema.widgetGroupSchemaId = uuid();
       }
+      
+      const { widgetGroupId, widgetGroupName } = activeSchema;
+      const widgetOptions: Option[] = widgetGroupWidgetOptions[widgetGroupId] || [];
 
       const schema: Record<string, PropPanelSchema> = {
         type: {
@@ -135,24 +30,72 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
           required: true,
           disabled: true,
         },
+        width: {
+          title: i18n('width'),
+          type: 'number',
+          widget: 'inputNumber',
+          required: true,
+          disabled: true,
+          span: 6,
+          props: { min: 0 },
+        },
+        height: {
+          title: i18n('height'),
+          type: 'number',
+          widget: 'inputNumber',
+          required: true,
+          disabled: true,
+          span: 6,
+          props: { min: 0 },
+        },
+        rotate: {
+          title: i18n('rotate'),
+          type: 'number',
+          widget: 'inputNumber',
+          disabled: true,
+          max: 360,
+          props: { min: 0 },
+          span: 6,
+        },
+        opacity: {
+          title: i18n('opacity'),
+          type: 'number',
+          widget: 'inputNumber',
+          disabled: true,
+          props: { step: 0.1, min: 0, max: 1 },
+          span: 6,
+        },
+        editable: { 
+          title: i18n('editable'), 
+          type: 'boolean', 
+          span: 8, 
+          hidden: true,
+        },
+        required: { 
+          title: i18n('required'), 
+          type: 'boolean', 
+          span: 16, 
+          hidden: true,
+        },
         widgetGroupSection: {
           type: 'object',
           properties: {
-            widgetCategory: {
-              title: 'Widget Category',
+            widgetGroupId: {
+              title: 'Widget Group',
               type: 'string',
               widget: 'select',
-              default: '',
+              default: widgetGroupName,
+              disabled: true,
               props: {
-                options: categoryOptions,
+                options: [],
                 placeholder: 'Please select category...',
               },
             },
-            widget: {
+            widgetId: {
               title: 'Widget',
               type: 'string',
               widget: 'select',
-              default: '',
+              default: null,
               props: {
                 options: widgetOptions,
                 placeholder: 'Please select widget...',
@@ -167,18 +110,16 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
     defaultSchema: {
       name: '',
       type: 'widgetGroup',
-      readOnly: true,
-      required: false,
       content: '',
       position: { x: 0, y: 0 },
       width: 62.5,
       height: 37.5,
-      widgetGroupId: '',
-      widgetGroupCompId: '',
+      widgetGroupSchemaId: '',
+      //widgetGroupCompId: '',
       widgetGroupType: 'parent',
       widgetGroupSection: {
-        widgetCategory: undefined,
-        widget: undefined,
+        widgetGroupId: undefined,
+        widgetId: undefined,
       },
     },
   },

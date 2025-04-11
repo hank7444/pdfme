@@ -14,9 +14,10 @@ import {
   displayJSONDataFromLocalStorage,
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
-import { WidgetCategoryOption, WidgetGroupCategoryWidgetIds } from './plugins/widgetGroup/types';
+import { WidgetGroupWidgetOptions } from './plugins/widgetGroup2/types';
 
-import { Widget } from './WidgetGroupDesigner/types'
+import { Widget } from './WidgetGroupDesigner/types';
+import { createAddSchema } from './plugins/utils';
 
 
 interface WidgetGroup {
@@ -84,6 +85,91 @@ function DesignerApp() {
 
   }, []);
 
+  useEffect(() => {
+    let pdfmeCanvasDiv: HTMLDivElement;
+
+    const onDropEvent = (e: DragEvent) => {
+      e.preventDefault(); 
+
+      const data = e.dataTransfer;
+
+      console.log('#### e: ', e);
+
+      if (data) {
+        const data = e.dataTransfer.getData('application/json');
+        const parsedData = JSON.parse(data);
+        const widgetGroup = widgetGroupsRef.current.find(wg => wg.id === parsedData.id);
+
+        if (designer.current && widgetGroup) {
+          const template = designer.current.getTemplate();
+          const pageCursor = designer.current.getPageCursor();
+          const newSchema = {
+            name: '',
+            type: 'widgetGroup',
+            width: widgetGroup!.width,
+            height: widgetGroup!.height,
+            position: {
+              x: 50 + Math.floor(Math.random() * 11) - 10,
+              y: 100 + Math.floor(Math.random() * 11) - 10,
+            },
+            widgetGroupId: widgetGroup.id,
+            widgetGroupName: widgetGroup.name,
+            widgetGroupWidth: widgetGroup.width,
+            widgetGroupHeight: widgetGroup.height,
+          };
+
+          template.schemas[pageCursor].push(createAddSchema(newSchema, template.schemas));
+          designer.current.updateTemplate(template);
+        }
+      }
+    };
+
+    const hideWidgetGroupButtonsAndSetDropEvents = (): void  => {
+
+      if (!designer.current) {
+        setTimeout(() => {
+          hideWidgetGroupButtonsAndSetDropEvents();
+        }, 200);
+        return;
+      }
+
+      // Hide the "WidgetGroup Plugin" button from the right-side toolbar in pdfme
+      const widgetDivs = document.querySelectorAll('div[title="WidgetGroup"]');
+      widgetDivs.forEach(div => {
+        const parentButton = div.closest('[role="button"]') as HTMLDivElement;
+        
+        if (parentButton) {
+          parentButton.style.display = 'none';
+        }
+      });
+
+      // Add a drop event listener to the pdfme canvas
+      const selectoElement = document.querySelector('.pdfme-selecto');
+
+      if (selectoElement) {
+        const nextDiv = selectoElement.nextElementSibling;
+
+        if (nextDiv && nextDiv.tagName === 'DIV') {
+          pdfmeCanvasDiv = nextDiv.firstElementChild as HTMLDivElement;
+          pdfmeCanvasDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+          });
+          pdfmeCanvasDiv.addEventListener('drop', onDropEvent);
+        }
+      }
+    };
+
+    hideWidgetGroupButtonsAndSetDropEvents();
+
+    return () => {
+      if (pdfmeCanvasDiv) {
+        pdfmeCanvasDiv.removeEventListener('dragover', (e) => e.preventDefault());
+        pdfmeCanvasDiv.removeEventListener('drop', onDropEvent);
+      }
+    };
+  }, [])
+
+
 
   const buildDesigner = useCallback(async () => {
     if (!designerRef.current) return;
@@ -112,30 +198,21 @@ function DesignerApp() {
       const widgetGroupsLocal = localStorage.getItem('widgetGroups') || '';
       const widgetGroups = JSON.parse(widgetGroupsLocal);
 
+      const widgetGroupWidgetOptions: WidgetGroupWidgetOptions = widgetGroups.reduce((accu, wg) => {
+        if (!wg.id) {
+          accu[wg.id] = [];
+        }
 
-      const categoryWidgetIds: WidgetGroupCategoryWidgetIds = {};
-      let widgets: Widget[] = [];
-      const categoryOptions: WidgetCategoryOption[] = widgetGroups.map((wg: WidgetGroup) => {
-        categoryWidgetIds[wg.id] = wg.widgets.map((widget: Widget) => widget.id);
-        widgets = widgets.concat(wg.widgets.map((widget: Widget) => {
+        accu[wg.id] = wg.widgets.map((widget: Widget) => {
           return {
-            ...widget,
-            width: wg.width,
-            height: wg.height,
+            label: widget.name,
+            value: widget.id,
+            schemas: widget.schemas,
           };
-        }));
+        });
 
-        return {
-          label: wg.name,
-          value: wg.id,
-          widgets: wg.widgets.map((widget: Widget) => {
-            return {
-              label: widget.name,
-              value: widget.id,
-            };
-          })
-        };
-      });
+        return accu;
+      }, {});
 
       designer.current = new Designer({
         domContainer: designerRef.current,
@@ -156,11 +233,7 @@ function DesignerApp() {
               '<svg fill="#000000" width="24px" height="24px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.643,13.072,17.414,2.3a1.027,1.027,0,0,1,1.452,0L20.7,4.134a1.027,1.027,0,0,1,0,1.452L9.928,16.357,5,18ZM21,20H3a1,1,0,0,0,0,2H21a1,1,0,0,0,0-2Z"/></svg>',
           },
           data: {
-            widgetGroup: {
-              categoryOptions,
-              categoryWidgetIds,
-              widgets,
-            },
+            widgetGroupWidgetOptions,
           },
         },
         plugins: getLittlePlugins(),

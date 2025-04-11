@@ -272,7 +272,7 @@ export const flattenTemplateSchema = (_template: Template) => {
         value.widgetGroupType = 'parent';
         const widgetGroupChilds = value.widgetGroupChilds.map((schema: SchemaForUI) => {
           schema.widgetGroupId = value.widgetGroupId;
-          schema.widgetGroupCompId = value.widgetGroupSection.widget;
+          //schema.widgetGroupCompId = value.widgetGroupSection.widget;
           schema.widgetGroupType = 'child';
 
           return schema;
@@ -312,7 +312,7 @@ export const nestTemplateSchema = (_template: Template) => {
         }
 
         delete schema.widgetGroupType;
-        delete schema.widgetGroupCompId;
+        //delete schema.widgetGroupCompId;
         delete schema.widgetGroupId;
 
         accu[widgetGroupId].push(schema); 
@@ -329,7 +329,7 @@ export const nestTemplateSchema = (_template: Template) => {
       if (schema.type === 'widgetGroup') {
         schema.widgetGroupChilds = widgetGroupChildsHash[schema.widgetGroupId] || [];
         delete schema.widgetGroupType;
-        delete schema.widgetGroupCompId;
+        //delete schema.widgetGroupCompId;
       }
       return schema;
     });
