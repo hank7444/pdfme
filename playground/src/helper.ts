@@ -110,6 +110,7 @@ export const getPlugins = () => {
     Image: image,
     SVG: svg,
     Signature: plugins.signature,
+    WidgetGroup: plugins.widgetGroup,
     QR: barcodes.qrcode,
     DateTime: dateTime,
     Date: date,

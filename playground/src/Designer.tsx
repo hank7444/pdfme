@@ -15,11 +15,162 @@ import {
 } from "./helper";
 import { NavBar, NavItem } from "./NavBar";
 
+import { createAddSchema } from './plugins/utils'; 
+
+
+interface WidgetGroup {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+}
+
+
+interface DraggableItemProps {
+  id: string;
+  name: string;
+  index: number;
+}
+
+const DraggableItem = ({ id, name, index }: DraggableItemProps) => {
+
+  const handleDragStart = (event: React.DragEvent<HTMLLIElement>) => {
+    const dragData = { id };
+    event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+  };
+
+  return (
+    <li 
+      draggable="true"  
+      key={`widgetGroupItem-${index}`} 
+      data-widgetgroup-id={id} 
+      className="h-[50px] flex items-center px-3 rounded bg-white hover:bg-gray-200 cursor-pointer"
+      onDragStart={handleDragStart}
+    >
+      {name}
+    </li>
+  )
+}
+
+
 function DesignerApp() {
   const [searchParams, setSearchParams] = useSearchParams();
   const designerRef = useRef<HTMLDivElement | null>(null);
   const designer = useRef<Designer | null>(null);
   const [lang, setLang] = useState<Lang>("en");
+
+  const widgetGroupsRef = useRef<WidgetGroup[]>([]);
+  const [widgetGroups, setWidgetGroups] = useState<WidgetGroup[]>([]);
+
+
+  useEffect(() => {
+    try {
+      const widgetGroups = localStorage.getItem("widgetGroups");
+      let widgetGroupJSON: WidgetGroup[] = []; 
+
+      if (widgetGroups) {
+        widgetGroupJSON = JSON.parse(widgetGroups).map((wg) => {
+          return {
+            id: wg.id,
+            name: wg.name,
+            width: wg.width,
+            height: wg.height,
+          }
+        })
+      }
+      setWidgetGroups(widgetGroupJSON)
+      widgetGroupsRef.current = widgetGroupJSON;
+    } catch {
+      console.error("An error occurred while process widgetGroup data from the local storage.");
+    }
+
+  }, []);
+
+  useEffect(() => {
+    let pdfmeCanvasDiv: HTMLDivElement;
+
+    const onDropEvent = (e: DragEvent) => {
+      e.preventDefault(); 
+
+      const data = e.dataTransfer;
+
+      console.log('#### e: ', e);
+
+      if (data) {
+        const data = e.dataTransfer.getData('application/json');
+        const parsedData = JSON.parse(data);
+        const widgetGroup = widgetGroupsRef.current.find(wg => wg.id === parsedData.id);
+
+        if (designer.current && widgetGroup) {
+          const template = designer.current.getTemplate();
+          const pageCursor = designer.current.getPageCursor();
+          const newSchema = {
+            name: '',
+            type: 'widgetGroup',
+            width: widgetGroup!.width,
+            height: widgetGroup!.height,
+            position: {
+              x: 50 + Math.floor(Math.random() * 11) - 10,
+              y: 100 + Math.floor(Math.random() * 11) - 10,
+            },
+            widgetGroupName: widgetGroup.name,
+            widgetGroupWidth: widgetGroup!.width,
+            widgetGroupHeight: widgetGroup!.height,
+          };
+
+          template.schemas[pageCursor].push(createAddSchema(newSchema, template.schemas));
+          designer.current.updateTemplate(template);
+        }
+      }
+    };
+
+    const hideWidgetGroupButtonsAndSetDropEvents = (): void  => {
+
+      if (!designer.current) {
+        setTimeout(() => {
+          hideWidgetGroupButtonsAndSetDropEvents();
+        }, 200);
+        return;
+      }
+
+      // Hide the "WidgetGroup Plugin" button from the right-side toolbar in pdfme
+      const widgetDivs = document.querySelectorAll('div[title="WidgetGroup"]');
+      widgetDivs.forEach(div => {
+        const parentButton = div.closest('[role="button"]') as HTMLDivElement;
+        
+        if (parentButton) {
+          parentButton.style.display = 'none';
+        }
+      });
+
+      // Add a drop event listener to the pdfme canvas
+      const selectoElement = document.querySelector('.pdfme-selecto');
+
+      if (selectoElement) {
+        const nextDiv = selectoElement.nextElementSibling;
+
+        if (nextDiv && nextDiv.tagName === 'DIV') {
+          pdfmeCanvasDiv = nextDiv.firstElementChild as HTMLDivElement;
+          pdfmeCanvasDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+          });
+          pdfmeCanvasDiv.addEventListener('drop', onDropEvent);
+        }
+      }
+    };
+
+    hideWidgetGroupButtonsAndSetDropEvents();
+
+    return () => {
+      if (pdfmeCanvasDiv) {
+        pdfmeCanvasDiv.removeEventListener('dragover', (e) => e.preventDefault());
+        pdfmeCanvasDiv.removeEventListener('drop', onDropEvent);
+      }
+    };
+  }, [])
+
+
+
 
 
   const buildDesigner = useCallback(async () => {
@@ -114,6 +265,7 @@ function DesignerApp() {
       }
     }
   }, [designerRef, buildDesigner]);
+
 
   const navItems: NavItem[] = [
     {
@@ -210,10 +362,29 @@ function DesignerApp() {
   ];
 
   return (
-    <>
+    <div className="h-screen">
       <NavBar items={navItems} />
-      <div ref={designerRef} className="flex-1 w-full" />
-    </>
+      <div className="flex w-full h-full">
+      
+        <div className="w-1/5 bg-gray-100 p-4">
+        <h2 className="text-lg font-semibold mb-4">Widget Group</h2>
+        <ul className="space-y-2">
+          {widgetGroups.map((item, index) => (
+            <DraggableItem 
+              index={index}
+              id={item.id}
+              name={item.name}
+            />
+          ))}
+        </ul>
+        </div>
+
+        {/* 右側 80% (原本的 designer) */}
+        <div ref={designerRef} className="w-4/5 flex-1 bg-white" />
+      </div>
+    </div>
+
+    
   );
 }
 

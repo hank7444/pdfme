@@ -76,6 +76,7 @@ const LeftSidebar = ({ height, scale, basePdf }: { height: number, scale: number
     }}
   >
     {Object.entries(pluginsRegistry).map(([label, plugin]) => {
+
       if (!plugin?.propPanel.defaultSchema) return null;
 
       return <Draggable
