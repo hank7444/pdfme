@@ -14,6 +14,7 @@ export interface Rect {
 
 export interface Widget {
   id: string;
+  widgetGroupId: string;
   name: string;
   schemas: Schema[];
   previewImage: string;

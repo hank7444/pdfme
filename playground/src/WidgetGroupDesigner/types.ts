@@ -27,6 +27,7 @@ export interface WidgetGroup {
 export interface Widget {
   id: string;
   name: string;
+  widgetGroupId: string;
   schemas: Schema[];
 }
 

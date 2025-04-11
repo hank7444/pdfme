@@ -98,7 +98,8 @@ export default function Navigation() {
   const navLinks = [
     { to: '/templates', label: 'Templates' },
     { to: '/widget-group-list', label: 'Widget Group List' },
-    { to: '/widget-designer', label: 'Widget Designer'},
+    { to: '/widget-designer', label: 'Widget Designer' },
+    { to: '/new-designer', label: 'New Designer' },
     { to: '/', label: 'Designer' },
     { to: '/form-viewer', label: 'Form/Viewer' },
   ];

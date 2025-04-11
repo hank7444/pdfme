@@ -33,7 +33,7 @@ function DesignerApp() {
   const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
   const [isEditWidgetMode, setIsEditWidgetMode] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [widgetGroupId, setWidgetGroupId] = useState<string | null>(null);
+  const [widgetGroupId, setWidgetGroupId] = useState<string>('');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
