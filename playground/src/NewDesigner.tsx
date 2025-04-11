@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { cloneDeep, Template, checkTemplate, Lang } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Lang, SchemaForUI } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
 import {
   getFontsData,
@@ -17,7 +17,9 @@ import { NavBar, NavItem } from "./NavBar";
 import { WidgetGroupWidgetOptions } from './plugins/widgetGroup2/types';
 
 import { Widget } from './WidgetGroupDesigner/types';
-import { createAddSchema } from './plugins/utils';
+import { uuid, createAddSchema } from './plugins/utils';
+import { WidgetGroupSchema } from './plugins/widgetGroup2/types';
+
 
 
 interface WidgetGroup {
@@ -68,14 +70,7 @@ function DesignerApp() {
       let widgetGroupJSON: WidgetGroup[] = []; 
 
       if (widgetGroups) {
-        widgetGroupJSON = JSON.parse(widgetGroups).map((wg) => {
-          return {
-            id: wg.id,
-            name: wg.name,
-            width: wg.width,
-            height: wg.height,
-          }
-        })
+        widgetGroupJSON = JSON.parse(widgetGroups);
       }
       setWidgetGroups(widgetGroupJSON)
       widgetGroupsRef.current = widgetGroupJSON;
@@ -103,7 +98,7 @@ function DesignerApp() {
         if (designer.current && widgetGroup) {
           const template = designer.current.getTemplate();
           const pageCursor = designer.current.getPageCursor();
-          const newSchema = {
+          const newSchema: WidgetGroupSchema = {
             name: '',
             type: 'widgetGroup',
             width: widgetGroup!.width,
@@ -112,13 +107,49 @@ function DesignerApp() {
               x: 50 + Math.floor(Math.random() * 11) - 10,
               y: 100 + Math.floor(Math.random() * 11) - 10,
             },
+            widgetGroupSchemaId: uuid(),
             widgetGroupId: widgetGroup.id,
             widgetGroupName: widgetGroup.name,
-            widgetGroupWidth: widgetGroup.width,
-            widgetGroupHeight: widgetGroup.height,
+            widgetGroupType: 'parent',
+            widgetGroupSection: {
+              widgetGroupId: widgetGroup.id,
+              widgetId: null,
+            },
           };
 
-          template.schemas[pageCursor].push(createAddSchema(newSchema, template.schemas));
+          const widgetGroupSchema = createAddSchema(newSchema, template.schemas) as WidgetGroupSchema;
+          let widgetGroupChildSchemas: SchemaForUI[] = [];
+
+          // generate the schemas of the first widget of the widgetGroup by default
+          if (widgetGroup.widgets.length) {
+            const widget = widgetGroup.widgets[0];
+
+            widgetGroupSchema.widgetGroupSection!.widgetId = widget.id;
+            widgetGroupChildSchemas = widget.schemas.map((widget, idx) => {
+              return {
+                ...widget,
+                name: `${widgetGroupSchema.widgetGroupSchemaId}_${idx}`,
+                widgetGroupSchemaId: widgetGroupSchema.widgetGroupSchemaId,
+                widgetGroupId: widgetGroup.id,
+                widgetId: widget.id,
+                widgetGroupType: 'child',
+                relPosition: {
+                  x: widget.position.x,
+                  y: widget.position.y
+                },
+                position: {
+                  x: widget.position.x + widgetGroupSchema.position.x,
+                  y: widget.position.y + widgetGroupSchema.position.y,
+                },
+              };
+           });
+          }
+
+           template.schemas[pageCursor] = [
+            ...template.schemas[pageCursor],
+            widgetGroupSchema,
+            ...widgetGroupChildSchemas
+          ];
           designer.current.updateTemplate(template);
         }
       }

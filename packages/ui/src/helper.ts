@@ -572,7 +572,7 @@ export const getWidgetGroupElemType = (schema: SchemaForUI): string => {
   if (!isWidgetElem) {
     return 'default';
   }
-  return schema.widgetGroupId == schema.id ? 'parent' : 'child';
+  return schema.widgetGroupType;
 };
 
 export const getWidgetGroupHTMLElemType = (elem: HTMLElement): { 

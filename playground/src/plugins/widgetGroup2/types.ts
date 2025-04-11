@@ -16,11 +16,11 @@ export interface WidgetCategoryOption {
 export interface WidgetGroupSchema extends Schema {
   widgetGroupSchemaId: string; // parent widget group ID, uuid()
   widgetGroupType: string; // 'parent' or 'child'
-  widgetGroupId: string;
-  widgetGroupName: string;
+  widgetGroupId: string,
+  widgetGroupName: string,
   widgetGroupSection: {
     widgetGroupId?: string;
-    widgetId?: string;
+    widgetId?: string | null;
   }
 }
 
@@ -37,4 +37,3 @@ export interface WidgetGroupCategoryWidgetIds {
 export interface WidgetGroupWidgetOptions {
   [key: string]: Option[]; 
 }
-

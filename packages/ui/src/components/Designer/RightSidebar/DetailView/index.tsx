@@ -175,11 +175,6 @@ const DetailView = (props: DetailViewProps) => {
       propPanelSchema.properties.position.properties.y.disabled = true;
     }
 
-    if (widgetGroupType === 'child') {
-      propPanelSchema.properties.name.disabled = true;
-    }
-
-
     return propPanelSchema;
   }
 
