@@ -11,7 +11,7 @@ import {
 } from '@pdfme/common';
 import { BaseUIClass } from './class';
 import { DESTROYED_ERR_MSG } from './constants.js';
-import DesignerComponent from './components/Designer/index';
+import DesignerComponent, { TemplateEditorHandle } from './components/Designer/index';
 import AppContextProvider from './components/AppContextProvider';
 
 class Designer extends BaseUIClass {
@@ -22,7 +22,7 @@ class Designer extends BaseUIClass {
   private pageCursor: number = 0;
   private isEditWidgetGroupMode: boolean = false;
   private isWidgetDesigner: boolean = false;
-  private designerRef: React.RefObject<DesignerComponent>;
+  private designerRef: React.RefObject<TemplateEditorHandle> = React.createRef();
 
   constructor(props: DesignerProps) {
     super(props);

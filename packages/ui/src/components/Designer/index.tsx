@@ -41,7 +41,22 @@ const scaleDragPosAdjustment = (adjustment: number, scale: number): number => {
   return 0;
 }
 
-const TemplateEditor = forwardRef(({
+export interface TemplateEditorHandle {
+  setPageCursor: (pageCursor: number) => void;
+}
+
+type TemplateEditorProps = Omit<DesignerProps, 'domContainer'> & {
+  size: Size;
+  isEditWidgetGroupMode: boolean;
+  isWidgetDesigner: boolean;
+  onSaveTemplate: (t: Template) => void;
+  onChangeTemplate: (t: Template) => void;
+  onPageCursorChange?: (newPageCursor: number) => void;
+  onPageSizesChange?: (pageSizes: Size[]) => void;
+};
+
+
+const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
   template,
   size,
   isEditWidgetGroupMode,
@@ -50,16 +65,6 @@ const TemplateEditor = forwardRef(({
   onChangeTemplate,
   onPageCursorChange,
   onPageSizesChange,
-}: Omit<DesignerProps, 'domContainer'> & {
-  size: Size;
-  isEditWidgetGroupMode: boolean;
-  isWidgetDesigner: boolean;
-  onSaveTemplate: (t: Template) => void;
-  onChangeTemplate: (t: Template) => void;
-} & {
-  onChangeTemplate: (t: Template) => void;
-  onPageCursorChange?: (newPageCursor: number) => void;
-  onPageSizesChange?: (pageSizes: Size[]) => void;
 }, ref) => {
   const past = useRef<SchemaForUI[][]>([]);
   const future = useRef<SchemaForUI[][]>([]);
@@ -174,6 +179,8 @@ const TemplateEditor = forwardRef(({
     setSchemasList,
     onEdit,
     onEditEnd,
+    isEditWidgetGroupMode,
+    isWidgetDesigner,
   });
 
   const updateTemplate = useCallback(async (newTemplate: Template) => {
