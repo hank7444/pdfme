@@ -49,7 +49,7 @@ const WidgetGroupList = () => {
                 <td className="px-4 py-2">{widgetGroup.name}</td>
                 <td className="px-4 py-2">
                   <a
-                    href={`/widget-designer?widgetGroupId=${widgetGroup.id}`}
+                    href={`/widget-designer2?widgetGroupId=${widgetGroup.id}`}
                     className="text-blue-500 hover:text-blue-700"
                   >
                     <svg

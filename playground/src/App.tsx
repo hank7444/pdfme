@@ -3,6 +3,7 @@ import Designer from "./Designer";
 import WidgetGroupList from "./WigetGroupList";
 import WidgetGroupDesigner from "./WidgetGroupDesigner";
 import WidgetDesigner from "./WidgetDesigner";
+import WidgetDesigner2 from "./WidgetDesigner2";
 import FormAndViewer from "./FormAndViewer";
 import Templates from "./Templates";
 import Header from "./Header";
@@ -19,6 +20,7 @@ function App() {
         <Route path="/widget-group-list" element={<WidgetGroupList />} />
         <Route path="/widget-group-designer" element={<WidgetGroupDesigner />} />
         <Route path="/widget-designer" element={<WidgetDesigner />} />
+        <Route path="/widget-designer2" element={<WidgetDesigner2 />} />
         <Route path="/new-designer" element={<WidgetDesigner />} />
         <Route path="/form-viewer" element={<FormAndViewer />} />
         <Route path="/templates" element={<Templates isEmbedded={isEmbedded} />} />
