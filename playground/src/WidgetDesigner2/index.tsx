@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cloneDeep, Template, checkTemplate, Schema, EditWidgetInfo, Size } from "@pdfme/common";
+import { cloneDeep, Template, checkTemplate, Schema, EditWidgetInfo, Size, ZOOM } from "@pdfme/common";
 import { Designer } from "@pdfme/ui";
+import { toSvg, toPng, toJpeg } from "html-to-image";
 import {
   getFontsData,
   getPlugins,
@@ -32,6 +33,12 @@ function DesignerApp() {
   const [isDisabledSaveBtn, setIsDisabledSaveBtn] = useState<boolean>(true);
   const [isEditWidgetMode, setIsEditWidgetMode] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [widgetGroupId, setWidgetGroupId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setWidgetGroupId(params.get('widgetGroupId'));
+  }, []);
 
   const finalIsDisabledSaveBtn = isDisabledSaveBtn || !widgetName;
 
@@ -84,18 +91,18 @@ function DesignerApp() {
 
   const getWidgetsFromLocalStorage = () => {
     try {
-      const widgetsFromLocal = localStorage.getItem("widgets");
+      const widgetsFromLocal = localStorage.getItem('widgets');
 
       if (widgetsFromLocal) {
         const widgets = JSON.parse(widgetsFromLocal);
         setWidgets(widgets);
       }
     } catch {
-      localStorage.removeItem("widgets");
+      localStorage.removeItem('widgets');
     }
   }
 
-  const onSaveWidget = () => {
+  const onSaveWidget = async () => {
 
     if (designer.current) {
       const widgetEditInfo = widgetEditInfoRef.current;
@@ -103,7 +110,7 @@ function DesignerApp() {
       let widgets: Widget[] = [];
 
       try {
-        const widgetsFromLocal = localStorage.getItem("widgets");
+        const widgetsFromLocal = localStorage.getItem('widgets');
 
         if (widgetsFromLocal) {
           widgets = JSON.parse(widgetsFromLocal);
@@ -115,12 +122,7 @@ function DesignerApp() {
 
       const id: string = selectedWidgetId || uuid();
       const schemas = template?.schemas[widgetEditInfo.pageCursor].map((schema) => {
-        const name = schema.name.indexOf(id) === -1
-          ? `${id}_${schema.name}`
-          : schema.name; localStorage.setItem("widgets", JSON.stringify(widgets));
-
         const newSchema = Object.assign(cloneDeep(schema), {
-          name,
           position: {
             x: schema.position.x - widgetEditInfo.position.x,
             y: schema.position.y - widgetEditInfo.position.y,
@@ -130,9 +132,69 @@ function DesignerApp() {
         return newSchema;
       });
 
+      
+
+      // Create the container
+      const previewImageContainer = document.createElement('div');
+      previewImageContainer.id = 'previewImageContainer';
+      previewImageContainer.style.zIndex = '-1';
+      previewImageContainer.style.position = 'absolute';
+      previewImageContainer.style.top = '1px';
+      previewImageContainer.style.left = '1px';
+      previewImageContainer.style.width = `${widgetEditInfo.width * ZOOM + 2}px`;
+      previewImageContainer.style.height = `${widgetEditInfo.height * ZOOM + 2}px`;
+      previewImageContainer.style.backgroundColor = 'white';
+      document.body.appendChild(previewImageContainer);
+
+
+      // Generate widget preview image
+      const widgetComps =  document.querySelectorAll('.selectable');
+      const schemaMapByName = schemas.reduce((accu: Record<string, Schema>, schema) => {
+        if (!accu[schema.name]) {
+          accu[schema.name] = schema;
+        }
+        return accu;
+      }, {});
+
+
+      widgetComps.forEach((comp) => {        
+        const clone = comp.cloneNode(true) as HTMLElement;
+        const schema: Schema = schemaMapByName[comp.getAttribute('title')!];
+
+        if (schema) {
+          const { x, y } = schema.position;
+          clone.style.position = 'absolute';
+          clone.style.left = `${x * ZOOM}px`;
+          clone.style.top = `${y * ZOOM}px`;
+
+          if (schema.type === 'signature') {
+            const newCanvas = clone.querySelector('canvas');
+            const originalCanvas = comp.querySelector('canvas')
+
+            if (!newCanvas || !originalCanvas) {
+              return false;
+            }
+
+            const dataURL = originalCanvas.toDataURL();
+            const img = new Image();
+            img.src = dataURL;
+            img.style.position = 'absolute';
+            img.style.left = '0px';
+            img.style.top = '0px';
+
+            clone.append(img);
+          }
+          previewImageContainer.appendChild(clone);
+        }
+      });
+
+      const previewImage = await toPng(previewImageContainer);
+      previewImageContainer.parentElement!.removeChild(previewImageContainer);
+
       const widget = {
         id,
         name: widgetName,
+        widgetGroupId,
         widgetSchema: {
           width: widgetEditInfo.width,
           height: widgetEditInfo.height,
@@ -142,6 +204,7 @@ function DesignerApp() {
           basePdf: widgetEditInfo.basePdf,
         },
         schemas,
+        previewImage,
       };
 
       const existWidgetIdx = widgets.findIndex((v) => v.id === id);
@@ -155,7 +218,7 @@ function DesignerApp() {
       }
 
       localStorage.setItem(
-        "widgets",
+        'widgets',
         JSON.stringify(widgets)
       );
 
@@ -676,6 +739,7 @@ function DesignerApp() {
     <>
       <NavBar items={navItems} />
       <NavBar items={navItems2} />
+      \
       <div ref={designerRef} className="flex-1 w-full" />
 
       <div style={{
