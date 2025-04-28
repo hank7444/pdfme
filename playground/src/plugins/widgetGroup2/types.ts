@@ -14,7 +14,8 @@ export interface WidgetCategoryOption {
 }
 
 export interface WidgetGroupSchema extends Schema {
-
+  widgetGroupWidth: number;
+  widgetGroupHeight: number;
 }
 
 export interface WidgetGroupHash {

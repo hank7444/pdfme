@@ -25,7 +25,17 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
   },
   pdf: () => { },
   propPanel: {
-    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, commitSchemas, onEditFunc, selectoRef  }) => {
+    schema: ({ options, activeSchema: _activeSchema, i18n, schemas, changeSchemas  }) => {
+      // @ts-expect-error: Using widgetGroup schema
+      const activeSchema = _activeSchema as WidgetGroupSchema;
+      const { width, height, widgetGroupWidth, widgetGroupHeight } = activeSchema;
+
+      if (width !== widgetGroupWidth || height !== widgetGroupHeight) {
+        changeSchemas([
+          { schemaId: activeSchema.id as string, key: 'width', value: widgetGroupWidth },
+          { schemaId: activeSchema.id as string, key: 'height', value: widgetGroupHeight },
+        ]);
+      }
 
       const schema: Record<string, PropPanelSchema> = {
         type: {
@@ -92,6 +102,8 @@ const widgetGroupSchema: Plugin<WidgetGroupSchema> = {
       position: { x: 0, y: 0 },
       width: 62.5,
       height: 37.5,
+      widgetGroupWidth: 0,
+      widgetGroupHeight: 0,
     },
   },
   icon: createSvgStr(Group),

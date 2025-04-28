@@ -129,6 +129,8 @@ function DesignerApp() {
               x: 50 + Math.floor(Math.random() * 11) - 10,
               y: 100 + Math.floor(Math.random() * 11) - 10,
             },
+            widgetGroupWidth: widgetGroup!.width,
+            widgetGroupHeight: widgetGroup!.height,
             widgetGroupId: widgetGroup.id,
             widgetGroupName: widgetGroup.name,
           };
