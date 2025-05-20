@@ -202,7 +202,7 @@ const HTMLElementSchema: z.ZodSchema<HTMLElement> = z.any().refine((v) => v inst
 export const UIProps = CommonProps.extend({
   domContainer: HTMLElementSchema,
   options: UIOptions.optional(),
-  isEditWidgetGroupMode: z.boolean().optional(),
+  isEditWidgetLayout: z.boolean().optional(),
   isWidgetDesigner: z.boolean().optional(),
 });
 

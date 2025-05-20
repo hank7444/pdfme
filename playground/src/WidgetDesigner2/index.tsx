@@ -78,7 +78,7 @@ function DesignerApp() {
           },
         },
         plugins: getPlugins(),
-        isEditWidgetGroupMode: false,
+        isEditWidgetLayout: false,
         isWidgetDesigner: true,
       });
     } catch {
@@ -596,7 +596,7 @@ function DesignerApp() {
           designer.current.updateTemplate(template);
         }
       }
-      designer.current.setIsEditWidgetGroupMode(isEditWidgetMode);
+      designer.current.setIsEditWidgetLayout(isEditWidgetMode);
     }
   }, [isEditWidgetMode]);
 

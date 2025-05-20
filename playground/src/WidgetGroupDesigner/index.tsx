@@ -67,7 +67,7 @@ function DesignerApp() {
         plugins: {
           widgetGroup: widgetGroup,
         },
-        isEditWidgetGroupMode: true,
+        isEditWidgetLayout: true,
         isWidgetDesigner: true,
       });
     } catch {
@@ -100,12 +100,14 @@ function DesignerApp() {
       const widgetGroup: WidgetGroup = {
         id,
         name: widgetName,
+        /*
         width: editWidgetRec!.width,
         height: editWidgetRec!.height,
         position: editWidgetRec!.position,
         pageCursor,
         pageSize: pageSize,
         basePdf,
+        */
         widgets: [],
       };
 

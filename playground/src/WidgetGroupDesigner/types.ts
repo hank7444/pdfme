@@ -15,12 +15,12 @@ export interface Rect {
 export interface WidgetGroup {
   id: string;
   name: string;
-  width: number;
-  height: number;
-  position: Position;
-  pageCursor: number;
-  pageSize: Size;
-  basePdf: string;
+  //width: number;
+  //height: number;
+  //position: Position;
+  //pageCursor: number;
+  //pageSize: Size;
+  //basePdf: string;
   widgets: Widget[];
 }
 

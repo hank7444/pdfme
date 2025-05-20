@@ -47,7 +47,7 @@ export interface TemplateEditorHandle {
 
 type TemplateEditorProps = Omit<DesignerProps, 'domContainer'> & {
   size: Size;
-  isEditWidgetGroupMode: boolean;
+  isEditWidgetLayout: boolean;
   isWidgetDesigner: boolean;
   onSaveTemplate: (t: Template) => void;
   onChangeTemplate: (t: Template) => void;
@@ -59,7 +59,7 @@ type TemplateEditorProps = Omit<DesignerProps, 'domContainer'> & {
 const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
   template,
   size,
-  isEditWidgetGroupMode,
+  isEditWidgetLayout,
   isWidgetDesigner,
   onSaveTemplate,
   onChangeTemplate,
@@ -179,7 +179,7 @@ const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
     setSchemasList,
     onEdit,
     onEditEnd,
-    isEditWidgetGroupMode,
+    isEditWidgetLayout,
     isWidgetDesigner,
   });
 
@@ -318,7 +318,7 @@ const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
         }}
         onDragStart={onEditEnd}
       >
-        {!isEditWidgetGroupMode &&
+        {!isEditWidgetLayout &&
           <LeftSidebar
             height={canvasRef.current ? canvasRef.current.clientHeight : 0}
             scale={scale}
@@ -362,7 +362,7 @@ const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
             deselectSchema={onEditEnd}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
-            isEditWidgetGroupMode={isEditWidgetGroupMode}
+            isEditWidgetLayout={isEditWidgetLayout}
           />
         
           <Canvas
@@ -383,7 +383,7 @@ const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(({
             changeSchemas={changeSchemas}
             removeSchemas={removeSchemas}
             sidebarOpen={sidebarOpen}
-            isEditWidgetGroupMode={isEditWidgetGroupMode}
+            isEditWidgetLayout={isEditWidgetLayout}
             isWidgetDesigner={isWidgetDesigner}
             onEdit={onEdit}
           />

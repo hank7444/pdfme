@@ -21,7 +21,7 @@ const ListView = (
     | 'hoveringSchemaId'
     | 'onChangeHoveringSchemaId'
     | 'changeSchemas'
-    | 'isEditWidgetGroupMode'
+    | 'isEditWidgetLayout'
   >
 ) => {
   const {
@@ -32,7 +32,7 @@ const ListView = (
     hoveringSchemaId,
     onChangeHoveringSchemaId,
     changeSchemas,
-    isEditWidgetGroupMode,
+    isEditWidgetLayout,
   } = props;
   const { token } = theme.useToken();
   const i18n = useContext(I18nContext);
@@ -102,7 +102,7 @@ const ListView = (
                 <u> {i18n('cancel')}</u>
               </Button>
             </>
-          ) : !isEditWidgetGroupMode && (
+          ) : !isEditWidgetLayout && (
             <Button size="small" type="text" onClick={startBulk}>
               <u> {i18n('bulkUpdateFieldName')}</u>
             </Button>

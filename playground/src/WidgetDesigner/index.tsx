@@ -71,7 +71,7 @@ function DesignerApp() {
           },
         },
         plugins: getPlugins(),
-        isEditWidgetGroupMode: false,
+        isEditWidgetLayout: false,
         isWidgetDesigner: true,
       });
     } catch {

@@ -16,5 +16,5 @@ export type SidebarProps = {
   deselectSchema: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (sidebarOpen: boolean) => void;
-  isEditWidgetGroupMode: boolean;
+  isEditWidgetLayout: boolean;
 };

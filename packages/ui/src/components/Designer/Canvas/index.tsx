@@ -93,7 +93,7 @@ interface Props {
   removeSchemas: (ids: string[]) => void;
   paperRefs: MutableRefObject<HTMLDivElement[]>;
   sidebarOpen: boolean;
-  isEditWidgetGroupMode: boolean;
+  isEditWidgetLayout: boolean;
   isWidgetDesigner: boolean;
 }
 
@@ -115,7 +115,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     onChangeHoveringSchemaId,
     paperRefs,
     sidebarOpen,
-    isEditWidgetGroupMode,
+    isEditWidgetLayout,
     isWidgetDesigner,
   } = props;
   const { token } = theme.useToken();
@@ -181,7 +181,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let padding;
 
     if (isWidgetDesigner) {
-      padding = isEditWidgetGroupMode ? [0, 0, 0, 0] : editWidgetInfo.padding;
+      padding = isEditWidgetLayout ? [0, 0, 0, 0] : editWidgetInfo.padding;
     } else if (isBlankPdf(basePdf)) {
       padding = basePdf.padding;
     }
@@ -281,7 +281,7 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let padding;
 
     if (isWidgetDesigner) {
-      padding = isEditWidgetGroupMode ? [0, 0, 0, 0] : editWidgetInfo!.padding;
+      padding = isEditWidgetLayout ? [0, 0, 0, 0] : editWidgetInfo!.padding;
     } else if (isBlankPdf(basePdf)) {
       padding = basePdf.padding;
     }
@@ -409,11 +409,11 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         hasRulers={true}
         renderPaper={({ index, paperSize }) => (
           <>
-            {!editing && activeElements.length > 0 && pageCursor === index && !isEditWidgetGroupMode && (
+            {!editing && activeElements.length > 0 && pageCursor === index && !isEditWidgetLayout && (
               <DeleteButton activeElements={activeElements} />
             )}
             
-            {!isEditWidgetGroupMode && 
+            {!isEditWidgetLayout && 
               <Padding isWidgetDesigner={isWidgetDesigner} basePdf={basePdf} editWidgetInfo={editWidgetInfo} />
             }
 

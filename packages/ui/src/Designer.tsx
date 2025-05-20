@@ -20,7 +20,7 @@ class Designer extends BaseUIClass {
   private onChangePageCursorCallback?: (pageCursor: number) => void;
   private onPageSizesChangeCallback?: (pageSizes: Size[]) => void;
   private pageCursor: number = 0;
-  private isEditWidgetGroupMode: boolean = false;
+  private isEditWidgetLayout: boolean = false;
   private isWidgetDesigner: boolean = false;
   private designerRef: React.RefObject<TemplateEditorHandle> = React.createRef();
 
@@ -28,7 +28,7 @@ class Designer extends BaseUIClass {
     super(props);
     checkDesignerProps(props);
 
-    this.isEditWidgetGroupMode = props.isEditWidgetGroupMode || false;
+    this.isEditWidgetLayout = props.isEditWidgetLayout || false;
     this.isWidgetDesigner = props.isWidgetDesigner || false;
     this.designerRef = React.createRef();
   }
@@ -74,8 +74,8 @@ class Designer extends BaseUIClass {
     }
   }
 
-  public setIsEditWidgetGroupMode(isEditWidgetGroupMode: boolean) {
-    this.isEditWidgetGroupMode = isEditWidgetGroupMode;
+  public setIsEditWidgetLayout(isEditWidgetLayout: boolean) {
+    this.isEditWidgetLayout = isEditWidgetLayout;
     this.render();
   }
 
@@ -118,7 +118,7 @@ class Designer extends BaseUIClass {
             }
           }}
           size={this.size}
-          isEditWidgetGroupMode={this.isEditWidgetGroupMode}
+          isEditWidgetLayout={this.isEditWidgetLayout}
           isWidgetDesigner={this.isWidgetDesigner}
         />
       </AppContextProvider>,

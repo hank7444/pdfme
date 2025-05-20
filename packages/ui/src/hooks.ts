@@ -176,7 +176,7 @@ interface UseInitEventsParams {
   setSchemasList: React.Dispatch<React.SetStateAction<SchemaForUI[][]>>;
   onEdit: (targets: HTMLElement[]) => void;
   onEditEnd: () => void;
-  isEditWidgetGroupMode: boolean;
+  isEditWidgetLayout: boolean;
   isWidgetDesigner: boolean;
 }
 
@@ -195,7 +195,7 @@ export const useInitEvents = ({
   setSchemasList,
   onEdit,
   onEditEnd,
-  isEditWidgetGroupMode,
+  isEditWidgetLayout,
   isWidgetDesigner,
 }: UseInitEventsParams) => {
   const copiedSchemas = useRef<SchemaForUI[] | null>(null);
@@ -223,7 +223,7 @@ export const useInitEvents = ({
         changeSchemas(arg);
       },
       copy: () => {
-        if (isEditWidgetGroupMode) {
+        if (isEditWidgetLayout) {
           return;
         }
 
@@ -232,7 +232,7 @@ export const useInitEvents = ({
         copiedSchemas.current = activeSchemas;
       },
       paste: () => {
-        if (isEditWidgetGroupMode) {
+        if (isEditWidgetLayout) {
           return;
         }
 
@@ -260,7 +260,7 @@ export const useInitEvents = ({
       save: () =>
         onSaveTemplate && onSaveTemplate(schemasList2template(schemasList, template.basePdf)),
       remove: () => {
-        if (isEditWidgetGroupMode) {
+        if (isEditWidgetLayout) {
           return;
         }
         removeSchemas(getActiveSchemas().map((s) => s.id))
