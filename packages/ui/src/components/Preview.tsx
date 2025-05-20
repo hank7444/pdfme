@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect, useContext } from 'react';
-import { Template, SchemaForUI, PreviewProps, Size, getDynamicTemplate, replacePlaceholders } from '@pdfme/common';
+import React, { useRef, useState, useEffect, useContext, forwardRef, useImperativeHandle } from 'react';
+import { Template, SchemaForUI, PreviewProps as PreviewProps_, Size, getDynamicTemplate, replacePlaceholders } from '@pdfme/common';
 import { getDynamicHeightsForTable } from '@pdfme/schemas/utils';
 import UnitPager from './UnitPager';
 import Root from './Root';
@@ -15,15 +15,24 @@ import { theme } from 'antd';
 
 const _cache = new Map();
 
-const Preview = ({
-  template,
-  inputs,
-  size,
-  onChangeInput,
-}: Omit<PreviewProps, 'domContainer'> & {
+
+export interface PreviewHandle {
+  setPageCursor: (pageCursor: number) => void;
+}
+
+type PreviewProps = Omit<PreviewProps_, 'domContainer'> & {
   onChangeInput?: (args: { index: number; value: string; name: string }) => void;
   size: Size;
-}) => {
+};
+
+const Preview = forwardRef<PreviewHandle, PreviewProps>((props, ref) => {
+  const {
+    template,
+    inputs,
+    size,
+    onChangeInput,
+  } = props;
+
   const { token } = theme.useToken();
 
   const font = useContext(FontContext);
@@ -38,6 +47,19 @@ const Preview = ({
 
   const { backgrounds, pageSizes, scale, error, refresh } =
     useUIPreProcessor({ template, size, zoomLevel });
+
+
+  useImperativeHandle(ref, () => ({
+    setPageCursor(pageCursor: number) {
+  
+      if (containerRef.current && pageSizes.length) {
+        setPageCursor(pageCursor);
+
+        const scrollTop = getPagesScrollTopByIndex(pageSizes, pageCursor, scale);
+        containerRef.current.scroll({ top: scrollTop + 25, behavior: 'smooth' });
+      }
+    },
+  }));
 
   const isForm = Boolean(onChangeInput);
 
@@ -183,6 +205,6 @@ const Preview = ({
       </div>
     </Root>
   );
-};
+});
 
 export default Preview;

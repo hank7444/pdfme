@@ -3,12 +3,22 @@ import ReactDOM from 'react-dom';
 import { PreviewProps } from '@pdfme/common';
 import { PreviewUI } from './class';
 import { DESTROYED_ERR_MSG } from './constants.js';
-import Preview from './components/Preview';
+import Preview, { PreviewHandle } from './components/Preview';
 import AppContextProvider from './components/AppContextProvider';
 
+
 class Viewer extends PreviewUI {
+  private viewerRef: React.RefObject<PreviewHandle> = React.createRef();
+
   constructor(props: PreviewProps) {
     super(props);
+    this.viewerRef = React.createRef();
+  }
+
+  public setPageCursor(pageCursor: number) {
+    if (this.viewerRef.current) {
+      this.viewerRef.current.setPageCursor(pageCursor);
+    }
   }
 
   protected render() {
@@ -20,7 +30,7 @@ class Viewer extends PreviewUI {
         plugins={this.getPluginsRegistry()}
         options={this.getOptions()}
       >
-        <Preview template={this.template} size={this.size} inputs={this.inputs} />
+        <Preview ref={this.viewerRef} template={this.template} size={this.size} inputs={this.inputs} />
       </AppContextProvider>,
       this.domContainer
     );

@@ -116,6 +116,12 @@ function FormAndViewerApp() {
     }
   };
 
+  const onSetPageCursor = () => {
+    if (ui.current) {
+      ui.current.setPageCursor(2);
+    }
+  }
+
   useEffect(() => {
     buildUi(mode);
     return () => {
@@ -182,6 +188,14 @@ function FormAndViewerApp() {
       content: (
         <button className="px-2 py-1 border" onClick={onGetInputs}>
           Get Inputs
+        </button>
+      ),
+    },
+    {
+      label: "",
+      content: (
+        <button className="px-2 py-1 border" onClick={onSetPageCursor}>
+          Set Page Cursor
         </button>
       ),
     },
