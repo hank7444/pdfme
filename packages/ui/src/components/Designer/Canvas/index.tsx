@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import { theme, Button } from 'antd';
 import { OnDrag, OnResize, OnClick, OnRotate } from 'react-moveable';
-import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, replacePlaceholders } from '@pdfme/common';
+import { ZOOM, SchemaForUI, Size, ChangeSchemas, BasePdf, isBlankPdf, EditWidgetInfo, replacePlaceholders } from '@pdfme/common';
 import { PluginsRegistry } from '../../../contexts';
 import { X } from 'lucide-react';
 import { RULER_HEIGHT, RIGHT_SIDEBAR_WIDTH } from '../../../constants';
@@ -77,6 +77,7 @@ interface GuidesInterface {
 
 interface Props {
   basePdf: BasePdf;
+  editWidgetInfo?: EditWidgetInfo; 
   height: number;
   hoveringSchemaId: string | null;
   onChangeHoveringSchemaId: (id: string | null) => void;
@@ -92,11 +93,14 @@ interface Props {
   removeSchemas: (ids: string[]) => void;
   paperRefs: MutableRefObject<HTMLDivElement[]>;
   sidebarOpen: boolean;
+  isEditWidgetLayout: boolean;
+  isWidgetDesigner: boolean;
 }
 
 const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
   const {
     basePdf,
+    editWidgetInfo,
     pageCursor,
     scale,
     backgrounds,
@@ -111,6 +115,8 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     onChangeHoveringSchemaId,
     paperRefs,
     sidebarOpen,
+    isEditWidgetLayout,
+    isWidgetDesigner,
   } = props;
   const { token } = theme.useToken();
   const pluginsRegistry = useContext(PluginsRegistry);
@@ -172,14 +178,20 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let rightPadding = 0;
     let bottomPadding = 0;
     let leftPadding = 0;
+    let padding;
 
-    if (isBlankPdf(basePdf)) {
-      const [t, r, b, l] = basePdf.padding;
-      topPadding = t * ZOOM;
-      rightPadding = r;
-      bottomPadding = b;
-      leftPadding = l * ZOOM;
+    if (isWidgetDesigner && editWidgetInfo) {
+      padding = isEditWidgetLayout ? [0, 0, 0, 0] : editWidgetInfo.padding;
+    } else if (isBlankPdf(basePdf)) {
+      padding = basePdf.padding;
     }
+
+    const [t, r, b, l] = padding || [0, 0, 0, 0];
+
+    topPadding = t * ZOOM;
+    rightPadding = r;
+    bottomPadding = b;
+    leftPadding = l * ZOOM;
 
     if (actualTop + targetHeight > pageHeight - bottomPadding) {
       target.style.top = `${(pageHeight - targetHeight - bottomPadding) * ZOOM}px`;
@@ -266,14 +278,20 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
     let rightPadding = 0;
     let bottomPadding = 0;
     let leftPadding = 0;
+    let padding;
 
-    if (isBlankPdf(basePdf)) {
-      const [t, r, b, l] = basePdf.padding;
-      topPadding = t * ZOOM;
-      rightPadding = mm2px(r);
-      bottomPadding = mm2px(b);
-      leftPadding = l * ZOOM;
+    if (isWidgetDesigner) {
+      padding = isEditWidgetLayout ? [0, 0, 0, 0] : editWidgetInfo!.padding;
+    } else if (isBlankPdf(basePdf)) {
+      padding = basePdf.padding;
     }
+
+    const [t, r, b, l] = padding || [0, 0, 0, 0];
+    
+    topPadding = t * ZOOM;
+    rightPadding = mm2px(r);
+    bottomPadding = mm2px(b);
+    leftPadding = l * ZOOM;
 
     const pageWidth = mm2px(pageSizes[pageCursor].width);
     const pageHeight = mm2px(pageSizes[pageCursor].height);
@@ -391,10 +409,14 @@ const Canvas = (props: Props, ref: Ref<HTMLDivElement>) => {
         hasRulers={true}
         renderPaper={({ index, paperSize }) => (
           <>
-            {!editing && activeElements.length > 0 && pageCursor === index && (
+            {!editing && activeElements.length > 0 && pageCursor === index && !isEditWidgetLayout && (
               <DeleteButton activeElements={activeElements} />
             )}
-            <Padding basePdf={basePdf} />
+
+            {!isEditWidgetLayout && editWidgetInfo &&
+              <Padding isWidgetDesigner={isWidgetDesigner} basePdf={basePdf} editWidgetInfo={editWidgetInfo} />
+            }
+
             <StaticSchema
               template={{ schemas: schemasList, basePdf }}
               input={Object.fromEntries(

@@ -125,6 +125,13 @@ export const BlankPdf = z.object({
   staticSchema: z.array(Schema).optional(),
 });
 
+export const EditWidgetInfo = z.object({
+  width: z.number(),
+  height: z.number(),
+  padding: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  pageCursor: z.number(),
+});
+
 const CustomPdf = z.union([z.string(), ArrayBufferSchema, Uint8ArraySchema]);
 
 export const BasePdf = z.union([CustomPdf, BlankPdf]);
@@ -138,6 +145,7 @@ export const Template = z
     schemas: SchemaPageArray,
     basePdf: BasePdf,
     pdfmeVersion: z.string().optional(),
+    editWidgetInfo: EditWidgetInfo.optional(),
   })
   .passthrough();
 
@@ -195,6 +203,8 @@ const HTMLElementSchema: z.ZodSchema<HTMLElement> = z.any().refine((v) => v inst
 export const UIProps = CommonProps.extend({
   domContainer: HTMLElementSchema,
   options: UIOptions.optional(),
+  isEditWidgetLayout: z.boolean().optional(),
+  isWidgetDesigner: z.boolean().optional(),
 });
 
 export const PreviewProps = UIProps.extend({ inputs: Inputs }).strict();

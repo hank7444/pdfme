@@ -4,13 +4,15 @@ import { PreviewProps } from '@pdfme/common';
 import { PreviewUI } from './class';
 import { DESTROYED_ERR_MSG } from './constants.js';
 import AppContextProvider from './components/AppContextProvider';
-import Preview from './components/Preview';
+import Preview, { PreviewHandle } from './components/Preview';
 
 class Form extends PreviewUI {
   private onChangeInputCallback?: (arg: { index: number; value: string; name: string }) => void;
+  private formRef: React.RefObject<PreviewHandle> = React.createRef();
 
   constructor(props: PreviewProps) {
     super(props);
+    this.formRef = React.createRef();
   }
 
   public onChangeInput(cb: (arg: { index: number; value: string; name: string }) => void) {
@@ -46,7 +48,11 @@ class Form extends PreviewUI {
     });
   }
 
-
+  public setPageCursor(pageCursor: number) {
+    if (this.formRef.current) {
+      this.formRef.current.setPageCursor(pageCursor);
+    }
+  }
 
   protected render() {
     if (!this.domContainer) throw Error(DESTROYED_ERR_MSG);
@@ -58,6 +64,7 @@ class Form extends PreviewUI {
         options={this.getOptions()}
       >
         <Preview
+          ref={this.formRef}
           template={this.template}
           size={this.size}
           inputs={this.inputs}

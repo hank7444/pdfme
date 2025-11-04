@@ -7,6 +7,7 @@ import {
   b64toUint8Array,
   Template,
   BasePdf,
+  EditWidgetInfo,
   SchemaForUI,
   Size,
   isBlankPdf,
@@ -244,7 +245,10 @@ export const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
 const convertSchemasForUI = (template: Template): SchemaForUI[][] => {
   template.schemas.forEach((page) => {
     page.forEach((schema) => {
-      schema.id = uuid();
+
+      if (!schema.id) {
+        schema.id = uuid();
+      }
       schema.content = schema.content || '';
     });
   });
@@ -294,7 +298,7 @@ export const template2SchemasList = async (_template: Template) => {
   });
 };
 
-export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf): Template => ({
+export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: BasePdf, editWidgetInfo?: EditWidgetInfo): Template => ({
   schemas: cloneDeep(schemasList).map((page) =>
     page.map((schema) => {
       // @ts-ignore
@@ -303,6 +307,7 @@ export const schemasList2template = (schemasList: SchemaForUI[][], basePdf: Base
     })
   ),
   basePdf,
+  ...(editWidgetInfo ? { editWidgetInfo } : {}),
 });
 
 export const getUniqueSchemaName = (arg: {
