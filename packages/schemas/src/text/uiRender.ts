@@ -1,7 +1,7 @@
 import type * as CSS from 'csstype';
 import type { Font as FontKitFont } from 'fontkit';
 import { UIRenderProps, getDefaultFont } from '@pdfme/common';
-import type { TextSchema } from './types';
+import type { TextSchema, Border } from './types';
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_ALIGNMENT,
@@ -13,6 +13,7 @@ import {
   DEFAULT_CHARACTER_SPACING,
   DEFAULT_FONT_COLOR,
   PLACEHOLDER_FONT_COLOR,
+  DEFAULT_BORDER,
 } from './constants.js';
 import {
   calculateDynamicFontSize,
@@ -20,6 +21,9 @@ import {
   getBrowserVerticalFontAdjustments,
   isFirefox,
 } from './helper.js';
+import {
+  isTextSchema
+} from './borderUtils.js';
 import { isEditable } from '../utils.js';
 
 const replaceUnsupportedChars = (text: string, fontKitFont: FontKitFont): string => {
@@ -179,11 +183,19 @@ export const buildStyledTextContainer = (arg: UIRenderProps<TextSchema>, fontKit
 
   const container = document.createElement('div');
 
+  // Get border & padding
+  const border: Border = schema.border || DEFAULT_BORDER;
+  const hasBorder = border.borderStyle !== 'none' && border.borderWidth.top && border.borderColor && isTextSchema(schema);
+  const padding = schema.padding || { top: 0, right: 0, bottom: 0, left: 0 };
+
   const containerStyle: CSS.Properties = {
     padding: 0,
     resize: 'none',
     backgroundColor: getBackgroundColor(value, schema),
-    border: 'none',
+    borderStyle: `${border.borderStyle}`,
+    borderColor: `${border.borderColor}`,
+    borderWidth: `${border.borderWidth.top}mm`,
+    boxSizing: hasBorder ? 'border-box' : 'content-box',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: mapVerticalAlignToFlex(schema.verticalAlignment),
@@ -212,12 +224,12 @@ export const buildStyledTextContainer = (arg: UIRenderProps<TextSchema>, fontKit
     wordBreak: 'break-word',
     // Block layout styles
     resize: 'none',
-    border: 'none',
     outline: 'none',
     marginBottom: `${bottomAdjustment}px`,
     paddingTop: `${topAdjustment}px`,
     backgroundColor: 'transparent',
     textDecoration: textDecorations.join(' '),
+    padding: `${padding.top}mm ${padding.right}mm ${padding.bottom}mm ${padding.left}mm`,
   };
 
   const textBlock = document.createElement('div');

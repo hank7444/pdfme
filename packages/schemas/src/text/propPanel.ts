@@ -21,6 +21,7 @@ import {
 } from './constants.js';
 import { DEFAULT_OPACITY, HEX_COLOR_PATTERN } from '../constants.js';
 import { getExtraFormatterSchema } from './extraFormatter';
+import { isTextSchema } from './borderUtils.js'
 
 const UseDynamicFontSize = (props: PropPanelWidgetProps) => {
   const { rootElement, changeSchemas, activeSchema, i18n } = props;
@@ -56,7 +57,7 @@ export const propPanel: PropPanel<TextSchema> = {
 
     const enableDynamicFont = Boolean((activeSchema as any)?.dynamicFontSize);
 
-    const textSchema: Record<string, PropPanelSchema> = {
+    let textSchema: Record<string, PropPanelSchema> = {
       fontName: {
         title: i18n('schemas.text.fontName'),
         type: 'string',
@@ -151,8 +152,125 @@ export const propPanel: PropPanel<TextSchema> = {
           },
         ],
       },
+      '-------': { type: 'void', widget: 'Divider' },
     };
 
+    if (isTextSchema(activeSchema)) {
+      textSchema = {
+        ...textSchema,
+        border: {
+          title: i18n('schemas.text.border') || 'Border',
+          type: 'object',
+          widget: 'card',
+          column: 2,
+          properties: {
+            borderStyle: {
+              title: i18n('schemas.text.borderStyle') || 'Border Style',
+              type: 'string',
+              widget: 'select',
+              default: 'none',
+              placeholder: 'none',
+              props: { 
+                options: [{
+                  label: 'None',
+                  value: 'none',
+                }, {
+                  label: 'Solid',
+                  value: 'solid',
+                }, {
+                  label: 'Dotted',
+                  value: 'dotted'
+                }, {
+                  label: 'Dashed',
+                  value: 'dashed',
+                }],
+              },
+            },
+            borderColor: {
+              title: i18n('schemas.borderColor'),
+              type: 'string',
+              widget: 'color',
+              props: {
+                disabledAlpha: true
+              },
+              rules: [{ pattern: HEX_COLOR_PATTERN, message: i18n('validation.hexColor') }],
+            },
+            '-------': { type: 'void', widget: 'Divider' },
+            borderWidth: {
+              title: i18n('schemas.borderWidth'),
+              type: 'object',
+              widget: 'lineTitle',
+              column: 4,
+              properties: {
+                top: {
+                  title: i18n('schemas.top') || 'Top',
+                  type: 'number',
+                  widget: 'inputNumber',
+                  props: { min: 0, step: 0.1, precision: 1 },
+                },
+                right: {
+                  title: i18n('schemas.right') || 'Right',
+                  type: 'number',
+                  widget: 'inputNumber',
+                  props: { min: 0, step: 0.1, precision: 1 },
+                  defaultValue: '{{ formData.border.borderWidth.top }}',
+                  disabled: true,
+                },
+                bottom: {
+                  title: i18n('schemas.bottom') || 'Bottom',
+                  type: 'number',
+                  widget: 'inputNumber',
+                  props: { min: 0, step: 0.1, precision: 1 },
+                  defaultValue: '{{ formData.border.borderWidth.top }}',
+                  disabled: true,
+               
+                },
+                left: {
+                  title: i18n('schemas.left') || 'Left',
+                  type: 'number',
+                  widget: 'inputNumber',
+                  props: { min: 0, step: 0.1, precision: 1 },
+                  defaultValue: '{{ formData.border.borderWidth.top }}',
+                  disabled: true,
+                },
+              },
+            },
+          },
+        },
+        padding: {
+          title: i18n('schemas.padding') || 'Padding',
+          type: 'object',
+          widget: 'card',
+          column: 4,
+          properties: {
+            top: {
+              title: i18n('schemas.top') || 'Top',
+              type: 'number',
+              widget: 'inputNumber',
+              props: { min: 0, step: 0.1, precision: 1 },
+            },
+            right: {
+              title: i18n('schemas.right') || 'Right',
+              type: 'number',
+              widget: 'inputNumber',
+              props: { min: 0, step: 0.1, precision: 1 },
+            },
+            bottom: {
+              title: i18n('schemas.bottom') || 'Bottom',
+              type: 'number',
+              widget: 'inputNumber',
+              props: { min: 0, step: 0.1, precision: 1 },
+            },
+            left: {
+              title: i18n('schemas.left') || 'Left',
+              type: 'number',
+              widget: 'inputNumber',
+              props: { min: 0, step: 0.1, precision: 1 },
+            },
+          },
+        },
+      };
+    }
     return textSchema;
   },
   widgets: { UseDynamicFontSize },
@@ -178,5 +296,11 @@ export const propPanel: PropPanel<TextSchema> = {
     opacity: DEFAULT_OPACITY,
     strikethrough: false,
     underline: false,
+    border: {
+      borderStyle: 'none',
+      borderWidth: { top: 0, right: 0, bottom: 0, left: 0 },
+      borderColor: '#000000',
+    },
+    padding: { top: 0, right: 0, bottom: 0, left: 0 },
   },
 };

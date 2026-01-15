@@ -19,6 +19,7 @@ import {
   DEFAULT_LINE_HEIGHT,
   DEFAULT_CHARACTER_SPACING,
   DEFAULT_FONT_COLOR,
+  DEFAULT_BORDER,
 } from './constants.js';
 import {
   calculateDynamicFontSize,
@@ -28,6 +29,7 @@ import {
   widthOfTextAtSize,
   splitTextToSize,
 } from './helper.js';
+import { normalizeBorderWidth, renderBorder, isTextSchema } from './borderUtils.js';
 import { convertForPdfLayoutProps, rotatePoint, hex2PrintingColor } from '../utils.js';
 
 const embedAndGetFontObj = async (arg: {
@@ -115,9 +117,20 @@ export const pdfRender = async (arg: PDFRenderProps<TextSchema>) => {
     opacity,
   } = convertForPdfLayoutProps({ schema, pageHeight, applyRotateTranslate: false });
 
+  // Get border and padding values
+  const border = schema.border || DEFAULT_BORDER;
+  const padding = schema.padding || { top: 0, right: 0, bottom: 0, left: 0 };
+
+  const borderWidth = normalizeBorderWidth(border.borderWidth);
+
   if (schema.backgroundColor) {
     const color = hex2PrintingColor(schema.backgroundColor, colorType);
     page.drawRectangle({ x, y, width, height, rotate, color });
+  }
+
+  // Render borders if defined
+  if (border.borderStyle !== 'none' && border.borderWidth && border.borderColor && isTextSchema(schema)) {
+    renderBorder(page, x, y, width, height, border.borderStyle, borderWidth, border.borderColor, rotate, opacity || 1, colorType);
   }
 
   page.pushOperators(pdfLib.setCharacterSpacing(characterSpacing ?? DEFAULT_CHARACTER_SPACING));
@@ -126,12 +139,19 @@ export const pdfRender = async (arg: PDFRenderProps<TextSchema>) => {
   const descent = getFontDescentInPt(fontKitFont, fontSize);
   const halfLineHeightAdjustment = lineHeight === 0 ? 0 : ((lineHeight - 1) * fontSize) / 2;
 
+
+  // Calculate text area dimensions accounting for borders and padding
+  const textAreaWidth = width - mm2pt(borderWidth.left + borderWidth.right + padding.left + padding.right);
+  const textAreaHeight = height - mm2pt(borderWidth.top + borderWidth.bottom + padding.top + padding.bottom);
+  const textAreaX = x + mm2pt(borderWidth.left + padding.left);
+  const textAreaY = y + mm2pt(borderWidth.bottom + padding.bottom);
+
   const lines = splitTextToSize({
     value,
     characterSpacing,
     fontSize,
     fontKitFont,
-    boxWidthInPt: width,
+    boxWidthInPt: textAreaWidth,
   });
 
   // Text lines are rendered from the bottom upwards, we need to adjust the position down
@@ -142,10 +162,10 @@ export const pdfRender = async (arg: PDFRenderProps<TextSchema>) => {
     const otherLinesHeight = lineHeight * fontSize * (lines.length - 1);
 
     if (verticalAlignment === VERTICAL_ALIGN_BOTTOM) {
-      yOffset = height - otherLinesHeight + descent - halfLineHeightAdjustment;
+      yOffset = textAreaHeight - otherLinesHeight + descent - halfLineHeightAdjustment;
     } else if (verticalAlignment === VERTICAL_ALIGN_MIDDLE) {
       yOffset =
-        (height - otherLinesHeight - firstLineTextHeight + descent) / 2 + firstLineTextHeight;
+        (textAreaHeight - otherLinesHeight - firstLineTextHeight + descent) / 2 + firstLineTextHeight;
     }
   }
 
@@ -156,18 +176,18 @@ export const pdfRender = async (arg: PDFRenderProps<TextSchema>) => {
     const textHeight = heightOfFontAtSize(fontKitFont, fontSize);
     const rowYOffset = lineHeight * fontSize * rowIndex;
 
-    let xLine = x;
+    let xLine = textAreaX;
     if (alignment === 'center') {
-      xLine += (width - textWidth) / 2;
+      xLine += (textAreaWidth - textWidth) / 2;
     } else if (alignment === 'right') {
-      xLine += width - textWidth;
+      xLine += textAreaWidth - textWidth;
     }
 
-    let yLine = pageHeight - mm2pt(schema.position.y) - yOffset - rowYOffset;
+    let yLine = pageHeight - mm2pt(schema.position.y) - mm2pt(borderWidth.top + padding.top) - yOffset - rowYOffset;
 
     // draw strikethrough
     if (schema.strikethrough && textWidth > 0) {
-      const _x = xLine + textWidth + 1
+      const _x = xLine + textWidth + 1;
       const _y = yLine + textHeight / 3;
       page.drawLine({
         start: rotatePoint({ x: xLine, y: _y }, pivotPoint, rotate.angle),

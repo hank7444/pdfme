@@ -1,4 +1,4 @@
-import { ALIGNMENT, VERTICAL_ALIGNMENT, DYNAMIC_FONT_SIZE_FIT } from './types';
+import { ALIGNMENT, VERTICAL_ALIGNMENT, DYNAMIC_FONT_SIZE_FIT, Border } from './types';
 
 export const DEFAULT_FONT_SIZE = 13;
 
@@ -20,4 +20,11 @@ export const DEFAULT_DYNAMIC_FIT = DYNAMIC_FIT_VERTICAL;
 export const DEFAULT_DYNAMIC_MIN_FONT_SIZE = 4;
 
 export const DEFAULT_DYNAMIC_MAX_FONT_SIZE = 72;
+
+export const DEFAULT_BORDER: Border = {
+  borderStyle: 'none',
+  borderColor: '',
+  borderWidth: { top: 0, right: 0, bottom: 0, left: 0 }, // mm
+};
+
 export const FONT_SIZE_ADJUSTMENT = 0.25;
